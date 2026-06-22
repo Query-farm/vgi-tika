@@ -55,25 +55,26 @@ Makefile                     build / fixtures / test-unit / test-sql / test / cl
    non-PDF formats and OCR-mode PDFs fall back to a single page row (documented
    in the README Limitations).
 
-## SDK dependency & CI (the fragile part)
+## SDK dependency & CI (self-contained via Maven Central)
 
-The worker depends on the `vgi-java` SDK (`farm.query:vgi-core` + `vgirpc` +
-`vgirpc-oauth`), which is a **separate repo** not on a public Maven repo.
+The worker depends on the VGI Java SDK `farm.query:vgi:0.4.0` (the worker/catalog
+API; pulls in `farm.query:vgirpc:0.10.2` transitively — declared explicitly since
+the code imports `farm.query.vgirpc.*`). **It's on Maven Central**, so the build
+is fully self-contained: no sibling checkout, no `mavenLocal`, no composite build.
+`.github/workflows/test.yml` is a single `build-and-test` job that resolves from
+Central, runs JUnit + shadowJar + an HTTP boot smoke test + `make test-sql`.
 
-- **Local:** resolves from `mavenLocal` (built via the sibling `vgi-java` /
-  `vgi-rpc-java` checkouts' `publishToMavenLocal`). The composite-build path is
-  gated behind `VGI_JAVA_COMPOSITE=1`; mavenLocal is the default.
-- **Local version skew:** the published `vgi` DuckDB extension (haybarn v1.5.4)
-  expects a `late_materialization` field a stale mavenLocal SDK may not emit
-  (31-vs-30 function-schema mismatch → all scalar calls blocked). If E2E fails
-  with a schema-count mismatch, rebuild a current `vgi-core` into mavenLocal.
-  That patch is environment state — **not committed here** (CI builds the SDK
-  fresh from upstream `main`, which tracks the published extension).
-- **CI** (`.github/workflows/test.yml`): an always-passing `build-scripts` job
-  (Gradle configuration only, no SDK) + a gated `unit-and-e2e` job that checks
-  out `query-farm/vgi-java` + `vgi-rpc-java`, publishes to mavenLocal, and
-  **fails loudly with `::error::`** if those checkouts are unavailable. Don't
-  make CI silently skip when the SDK is missing.
+- **Artifact rename:** the old local SNAPSHOT was `farm.query:vgi-core`; the
+  Central release is `farm.query:vgi`. Same Java packages (`farm.query.vgi.*`),
+  so imports are unchanged.
+- **Keep the SDK version aligned with the published `vgi` DuckDB extension.** The
+  0.x records gained components over time — `TableInitParams` picked up `atUnit`,
+  `atValue`, `storage`; `TableInOutInitParams` picked up `storage` (the
+  "late_materialization" / 31-vs-30 skew that an older SDK couldn't satisfy).
+  Pinning the current release (0.4.0) is what fixes it — there is no local patch.
+  The in-process test driver (`TestSupport`, `ExtractAllTest`) constructs these
+  records directly, so an SDK bump can require appending trailing `null`s there;
+  get the exact constructor with `javap -cp <vgi jar> farm.query.vgi.table.TableInitParams`.
 
 ## Testing
 

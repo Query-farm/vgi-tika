@@ -11,10 +11,9 @@ group = "farm.query"
 version = "0.1.0-SNAPSHOT"
 
 repositories {
-    // mavenLocal is the fallback when the composite-build sibling (../../vgi-java)
-    // isn't present (CI runner, container build). Populate it with
-    // `make publish-deps-local` from vgi-java.
-    mavenLocal()
+    // The VGI Java SDK is published to Maven Central as farm.query:vgi /
+    // farm.query:vgirpc, so the build is fully self-contained — no mavenLocal,
+    // no sibling checkout, no composite build.
     mavenCentral()
 }
 
@@ -38,12 +37,12 @@ tasks.withType<JavaCompile>().configureEach {
 val tikaVersion = "3.3.1"
 
 dependencies {
-    // Pin the version so mavenLocal resolves when the composite-build sibling
-    // isn't present. The composite-build substitution (when ../../vgi-java
-    // exists) ignores the declared version.
-    implementation("farm.query:vgi-core:0.1.0-SNAPSHOT")
-    implementation("farm.query:vgirpc:0.1.0-SNAPSHOT")
-    implementation("farm.query:vgirpc-oauth:0.1.0-SNAPSHOT")
+    // VGI Java SDK from Maven Central. `vgi` is the worker/catalog API (published
+    // as farm.query:vgi; the old local SNAPSHOT artifact was named vgi-core) and
+    // pulls in farm.query:vgirpc transitively; vgirpc is declared explicitly
+    // because the code imports farm.query.vgirpc.* directly. oauth is not used.
+    implementation("farm.query:vgi:0.4.0")
+    implementation("farm.query:vgirpc:0.10.2")
 
     // Apache Tika — Apache-2.0. tika-core is the streaming Parser/Metadata API;
     // tika-parsers-standard-package pulls PDFBox, POI, jackcess, language-detect,

@@ -45,7 +45,8 @@ class ExtractAllTest {
         Schema outSchema = ExtractAllFunction.outputSchema(inputSchema, idColumn);
 
         var initParams = new farm.query.vgi.tableinout.TableInOutInitParams(
-                fn.name(), args, inputSchema, outSchema, Map.of(), Allocators.root());
+                // trailing BoundStorage component added in vgi 0.4.0 (unused here).
+                fn.name(), args, inputSchema, outSchema, Map.of(), Allocators.root(), null);
 
         var state = fn.createExchange(initParams);
         OutputCollector collector = new OutputCollector(outSchema, "test", true);

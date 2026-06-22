@@ -131,20 +131,15 @@ java -jar build/libs/vgi-tika-*-all.jar              # stdio transport (default)
 java -jar build/libs/vgi-tika-*-all.jar --http --port 8000   # HTTP transport
 ```
 
-### Resolving the VGI Java SDK
+### The VGI Java SDK
 
-The build depends on `farm.query:vgi-core`, `farm.query:vgirpc`, and
-`farm.query:vgirpc-oauth`, resolved from **mavenLocal** (`~/.m2`). Publish them from
-the sibling SDK repos first:
-
-```sh
-# in ../vgi-rpc-java and ../vgi-java
-./gradlew publishToMavenLocal
-```
-
-Alternatively, set `VGI_JAVA_COMPOSITE=1` to composite-build vgi-java from
-`../../vgi-java` (couples to the SDK's internal Gradle project layout; the default
-mavenLocal route is the stable one). CI checks the SDK repos out and publishes them.
+The build depends on the VGI Java SDK — `farm.query:vgi` (the worker/catalog API;
+pulls in `farm.query:vgirpc` transitively) — which is **published to Maven
+Central**. There is nothing to set up: a clean checkout builds and tests with no
+sibling repos, no `mavenLocal`, and no composite build. The SDK version is pinned
+in `build.gradle.kts`; keep it aligned with the `vgi` DuckDB extension version
+you run against (a worker built on an older SDK can miss protocol fields a newer
+extension expects).
 
 ## Dependencies & licensing
 
