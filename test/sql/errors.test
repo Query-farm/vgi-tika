@@ -1,0 +1,48 @@
+# name: test/sql/errors.test
+# group: [vgi_tika]
+#
+# Per-row error capture vs. strict re-raise.
+
+require-env VGI_TIKA_WORKER
+
+statement ok
+LOAD vgi;
+
+statement ok
+ATTACH 'tika' AS tika (TYPE vgi, LOCATION '${VGI_TIKA_WORKER}');
+
+# ---- non-strict: a missing path yields a row (NULL content + error), not a
+#      query failure. -----------------------------------------------------------
+
+query II
+SELECT content IS NULL AS no_content, error IS NOT NULL AS has_error
+FROM tika.extract('test/sql/data/does-not-exist.pdf');
+----
+true	true
+
+# ---- corrupt bytes from a column are captured per-row via extract_all (the
+#      table-in-out that streams a blob column); tika.extract is single-doc and
+#      takes a constant arg, so per-row blob processing goes through extract_all.
+statement ok
+CREATE TEMP TABLE blobs AS
+  SELECT 'corrupt' AS id, content AS doc FROM read_blob('test/sql/data/corrupt.pdf');
+
+query II
+SELECT id, error IS NOT NULL AS has_error
+FROM tika.extract_all((SELECT id, doc FROM blobs), id := 'id');
+----
+corrupt	true
+
+# ---- strict := true re-raises and fails the query ---------------------------
+
+statement error
+SELECT * FROM tika.extract('test/sql/data/does-not-exist.pdf', strict := true);
+----
+
+# metadata() honours strict too.
+statement error
+SELECT * FROM tika.metadata('test/sql/data/does-not-exist.pdf', strict := true);
+----
+
+statement ok
+DETACH tika;

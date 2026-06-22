@@ -21,14 +21,18 @@ import org.apache.arrow.vector.types.pojo.Schema;
 import java.nio.file.Path;
 import java.util.List;
 
+import org.apache.arrow.memory.BufferAllocator;
+
 /**
  * {@code tika.extract(path | bytes, by_page := false, lang := 'eng', ocr := false,
  * strict := false)} — extract text + metadata from a single document.
  *
  * <p>Emits exactly one row (the whole document) unless {@code by_page := true},
- * in which case it emits one row per page/slide/sheet with a leading {@code page}
- * column. Parse failures are captured per-row (NULL content + {@code error})
- * unless {@code strict := true}, which re-raises and fails the query.
+ * in which case it emits one row per page with a leading {@code page} column.
+ * Real per-page text splitting is performed for PDFs (via PDFBox); other formats
+ * fall back to a single page row carrying the whole body. Parse failures are
+ * captured per-row (NULL content + {@code error}) unless {@code strict := true},
+ * which re-raises and fails the query.
  */
 public final class ExtractFunction implements TableFunction {
 
@@ -47,10 +51,11 @@ public final class ExtractFunction implements TableFunction {
     }
 
     @Override public List<ArgSpec> argumentSpecs() {
-        // Positional doc arg is declared as BINARY; DuckDB also passes a VARCHAR
-        // path here (the worker disambiguates on the runtime value/type).
+        // Polymorphic doc arg: an any-typed positional so DuckDB binds both a
+        // VARCHAR path (the worker opens the file) and a BLOB/BINARY of bytes.
+        // The worker disambiguates on the runtime value/type via DocInput.
         return List.of(
-                ArgSpec.positional("doc", 0, Schemas.BINARY),
+                ArgSpec.any("doc", 0, List.of()),
                 ArgSpec.named("by_page", Schemas.BOOL, "false"),
                 ArgSpec.named("lang", Schemas.UTF8, "eng"),
                 ArgSpec.named("ocr", Schemas.BOOL, "false"),
@@ -108,36 +113,47 @@ public final class ExtractFunction implements TableFunction {
             done = true;
 
             Path p = path == null ? null : Path.of(path);
-            TikaEngine.ExtractResult r = engine().extract(bytes, p, ocr, lang);
 
+            if (byPage) {
+                List<TikaEngine.PageResult> pages = engine().extractByPage(bytes, p, ocr, lang);
+                if (strict) {
+                    for (TikaEngine.PageResult page : pages) {
+                        if (page.result().error() != null) {
+                            throw new RuntimeException("tika.extract failed: " + page.result().error());
+                        }
+                    }
+                }
+                out.emit(buildByPage(Allocators.root(), pages));
+                out.finish();
+                return;
+            }
+
+            TikaEngine.ExtractResult r = engine().extract(bytes, p, ocr, lang);
             if (strict && r.error() != null) {
                 throw new RuntimeException("tika.extract failed: " + r.error());
             }
-
-            VectorSchemaRoot root = byPage ? buildByPage(r) : TikaSchemas.singleRow(Allocators.root(), r);
-            out.emit(root);
+            out.emit(TikaSchemas.singleRow(Allocators.root(), r));
             out.finish();
         }
 
-        /**
-         * v1 page splitting: Tika's default BodyContentHandler yields a single
-         * concatenated body, so by_page emits one row with page = n_pages (or 1)
-         * carrying the full text. True per-page splitting (a page-boundary SAX
-         * handler) is a planned enhancement; the schema is already page-aware so
-         * callers can adopt it without a signature change.
-         */
-        private VectorSchemaRoot buildByPage(TikaEngine.ExtractResult r) {
+        /** Build a by-page Arrow batch: one row per {@link TikaEngine.PageResult}. */
+        private static VectorSchemaRoot buildByPage(BufferAllocator alloc, List<TikaEngine.PageResult> pages) {
             VectorSchemaRoot root = VectorSchemaRoot.create(
-                    TikaSchemas.EXTRACT_BY_PAGE_SCHEMA, Allocators.root());
+                    TikaSchemas.EXTRACT_BY_PAGE_SCHEMA, alloc);
             root.allocateNew();
-            TikaSchemas.setInt(root, "page", 0, r.nPages() != null ? r.nPages() : 1);
-            TikaSchemas.setUtf8(root, "content", 0, r.content());
-            TikaSchemas.setUtf8(root, "mime", 0, r.mime());
-            TikaSchemas.setInt(root, "n_pages", 0, r.nPages());
-            TikaSchemas.setUtf8(root, "lang", 0, r.lang());
-            TikaSchemas.writeMap((MapVector) root.getVector("meta"), 0, r.meta());
-            TikaSchemas.setUtf8(root, "error", 0, r.error());
-            root.setRowCount(1);
+            MapVector metaVec = (MapVector) root.getVector("meta");
+            for (int i = 0; i < pages.size(); i++) {
+                TikaEngine.PageResult page = pages.get(i);
+                TikaEngine.ExtractResult r = page.result();
+                TikaSchemas.setInt(root, "page", i, page.page());
+                TikaSchemas.setUtf8(root, "content", i, r.content());
+                TikaSchemas.setUtf8(root, "mime", i, r.mime());
+                TikaSchemas.setInt(root, "n_pages", i, r.nPages());
+                TikaSchemas.setUtf8(root, "lang", i, r.lang());
+                TikaSchemas.writeMap(metaVec, i, r.meta());
+                TikaSchemas.setUtf8(root, "error", i, r.error());
+            }
+            root.setRowCount(pages.size());
             return root;
         }
     }

@@ -1,0 +1,66 @@
+package farm.query.vgi.tika;
+
+import farm.query.vgi.function.FunctionMetadata;
+import farm.query.vgi.scalar.ScalarFn;
+import farm.query.vgi.scalar.Vector;
+import org.apache.arrow.vector.Float8Vector;
+import org.apache.arrow.vector.VarCharVector;
+import org.apache.tika.language.detect.LanguageDetector;
+import org.apache.tika.language.detect.LanguageResult;
+
+/**
+ * {@code tika.detect_lang_conf(text) -> DOUBLE} — the confidence (0.0–1.0) of the
+ * top language detected for a piece of text, the companion to {@code detect_lang}.
+ * Returns NULL when no language is found, mirroring {@code detect_lang}'s NULL.
+ *
+ * <p>Tika reports confidence as a {@code Confidence} enum (NONE/LOW/MEDIUM/HIGH);
+ * we surface the underlying raw probability via {@link LanguageResult#getRawScore()}
+ * so callers get a continuous score they can threshold.
+ */
+public final class DetectLangConfFunction extends ScalarFn {
+
+    // LanguageDetector instances are not thread-safe for concurrent detect()
+    // calls; build per-thread copies lazily (mirrors DetectLangFunction).
+    private static final ThreadLocal<LanguageDetector> DETECTOR =
+            ThreadLocal.withInitial(() -> {
+                try {
+                    return LanguageDetector.getDefaultLanguageDetector().loadModels();
+                } catch (java.io.IOException e) {
+                    throw new java.io.UncheckedIOException(e);
+                }
+            });
+
+    @Override public String name() { return "detect_lang_conf"; }
+
+    @Override public String description() {
+        return "Confidence (0.0-1.0) of the top detected language for a piece of text "
+                + "(Apache Tika language detection); the companion score to detect_lang.";
+    }
+
+    @Override public FunctionMetadata metadata() {
+        return FunctionMetadata.describe(description()).withCategories("text", "detection", "tika");
+    }
+
+    public void compute(@Vector("text") VarCharVector in, Float8Vector out) {
+        LanguageDetector detector;
+        try {
+            detector = DETECTOR.get();
+        } catch (Exception e) {
+            // Models unavailable on the classpath — emit all-null rather than fail.
+            for (int i = 0; i < in.getValueCount(); i++) out.setNull(i);
+            return;
+        }
+        int n = in.getValueCount();
+        for (int i = 0; i < n; i++) {
+            if (in.isNull(i)) { out.setNull(i); continue; }
+            String text = in.getObject(i).toString();
+            if (text.isBlank()) { out.setNull(i); continue; }
+            LanguageResult r = detector.detect(text);
+            if (r == null || r.isUnknown()) {
+                out.setNull(i);
+            } else {
+                out.setSafe(i, r.getRawScore());
+            }
+        }
+    }
+}

@@ -40,8 +40,9 @@ public final class MetadataFunction implements TableFunction {
     }
 
     @Override public List<ArgSpec> argumentSpecs() {
+        // Polymorphic doc arg (VARCHAR path or BLOB bytes) — see ExtractFunction.
         return List.of(
-                ArgSpec.positional("doc", 0, Schemas.BINARY),
+                ArgSpec.any("doc", 0, List.of()),
                 ArgSpec.named("strict", Schemas.BOOL, "false"));
     }
 

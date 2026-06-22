@@ -45,8 +45,10 @@ metadata bag. Each capability maps to the VGI primitive that fits its data flow:
   `read_blob()`; prefer `path` for local files to avoid moving megabytes per row.
 - **`id` passthrough** on `extract_all` — the named column is excluded from
   processing and copied onto each output row so you can join results back to source.
-- **`by_page := true`** — emits one row per page/slide/sheet with a `page` column so
-  you can chunk for embeddings without a second pass. *(v1: see Limitations.)*
+- **`by_page := true`** — emits one row per page with a `page` column so you can
+  chunk for embeddings without a second pass. For **PDFs** this is real per-page
+  text splitting (PDFBox `PDFTextStripper`); other formats fall back to a single
+  page row (see Limitations).
 - **Per-row errors** — a corrupt file yields a row with `NULL content` and a populated
   `error` column rather than failing the whole query. Set `strict := true` to re-raise.
 
@@ -87,14 +89,18 @@ extract_all(input TABLE, id := '', doc_column := '', ocr := false, lang := 'eng'
 ### Detection — scalars
 
 ```
-detect_mime(doc BLOB|VARCHAR) -> VARCHAR    -- Tika media-type detection
-detect_lang(text VARCHAR)      -> VARCHAR    -- ISO-639 code, or NULL if unknown
+detect_mime(doc BLOB|VARCHAR)  -> VARCHAR    -- Tika media-type detection
+detect_lang(text VARCHAR)       -> VARCHAR    -- ISO-639 code, or NULL if unknown
+detect_lang_conf(text VARCHAR)  -> DOUBLE     -- confidence (0.0-1.0) of detect_lang, or NULL
 ```
 
 ```sql
 SELECT detect_mime(body) AS mime, count(*) FROM files GROUP BY 1;
-SELECT detect_lang(content) FROM tika.extract('/docs/report.pdf');
+SELECT detect_lang(content), detect_lang_conf(content) FROM tika.extract('/docs/report.pdf');
 ```
+
+`detect_lang_conf` is the companion confidence score for `detect_lang` — use it to
+threshold low-confidence detections (e.g. `WHERE detect_lang_conf(content) > 0.5`).
 
 ### OCR — `tika.ocr`
 
@@ -149,16 +155,50 @@ mavenLocal route is the stable one). CI checks the SDK repos out and publishes t
   language data is installed separately. OCR functions degrade to `NULL` when absent.
 - Worker code is under the [MIT License](LICENSE); all bundled deps are permissive.
 
-The fat JAR merges Tika's `META-INF/services` SPI files (`mergeServiceFiles()`), so
-parser, detector, and language-model discovery work from a single shaded artifact.
+### Fat-JAR packaging notes
 
-## Limitations (v1)
+Two things make the shaded artifact work as a standalone worker; both are wired in
+`build.gradle.kts`:
 
-- **`by_page`** currently emits a single row carrying the full document text with
-  `page = n_pages`. The output schema is already page-aware, so true per-page
-  splitting (a page-boundary SAX handler) can be added without a signature change.
-- `detect_lang` exposes the top language only; a `detect_lang_conf` confidence
-  variant is planned.
+- **SPI merge.** Tika 3.x splits its parsers across ~27 `tika-parser-*-module` jars
+  that each declare the same `org.apache.tika.parser.Parser` service. Shadow's
+  `mergeServiceFiles()` alone collapsed them to a single entry (only
+  `CompositeExternalParser` survived), which silently made body extraction return
+  empty text while MIME detection still worked. The `generateMergedSpi` task
+  pre-concatenates every dependency's `META-INF/services/*` into the shaded jar so
+  all ~85 parser implementations register.
+- **No stdout pollution.** The stdio transport speaks Arrow IPC over stdout, so a
+  single stray byte there corrupts the protocol and hangs the worker. Some Tika
+  modules use the Log4j 2 API; with no provider, Log4j's `StatusLogger` prints to
+  **stdout**. We add `log4j-to-slf4j` to route Log4j → SLF4J → `slf4j-simple`
+  (stderr). The manifest also sets `Add-Opens: java.base/java.nio` so a bare
+  `java -jar` works without the caller passing `--add-opens` (Arrow needs it).
+
+## Testing
+
+```sh
+make test        # JUnit (./gradlew test) + SQL E2E
+make test-unit   # JUnit only
+make test-sql    # fat JAR + regenerate fixtures + haybarn-unittest over test/sql/*
+```
+
+The SQL E2E suite (`test/sql/*.test`) runs the real functions inside DuckDB via
+[`haybarn-unittest`](https://pypi.org/project/haybarn-unittest/) with the fat JAR
+as the VGI `LOCATION`. Install the runner once with `uv tool install haybarn-unittest`
+and put `~/.local/bin` on `PATH`. Fixtures under `test/sql/data/` (a known-text PDF,
+a 3-page PDF, a DOCX, an English text sample, and a corrupt PDF) are reproducible
+from the JUnit PDFBox/POI builders via `make fixtures` (Gradle `generateSqlFixtures`).
+
+> Note: under `haybarn-unittest`, `require vgi` *skips* the file — the `.test`
+> files use an explicit `LOAD vgi;` instead.
+
+## Limitations
+
+- **`by_page`** does real per-page text splitting for **PDFs** (PDFBox
+  `PDFTextStripper`). For non-PDF formats (DOCX/PPTX/XLSX/HTML/…) Tika exposes no
+  page-boundary signal, so `by_page` falls back to a single row carrying the whole
+  body with `page = 1`. The schema is identical either way, so callers don't branch.
+  PDFs parsed with `ocr := true` also fall back (OCR text has no page boundaries).
 
 ## How it's built
 

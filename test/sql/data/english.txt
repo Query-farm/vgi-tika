@@ -1,0 +1,1 @@
+The quick brown fox jumps over the lazy dog. This is a sufficiently long English sentence so the language detector can settle on a confident result.

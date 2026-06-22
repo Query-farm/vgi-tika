@@ -29,6 +29,7 @@ public final class Main {
                 .registerTableInOut(new ExtractAllFunction())
                 .registerScalar(new DetectMimeFunction())
                 .registerScalar(new DetectLangFunction())
+                .registerScalar(new DetectLangConfFunction())
                 .registerScalar(new OcrFunction());
     }
 

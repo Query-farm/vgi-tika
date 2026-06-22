@@ -5,8 +5,38 @@ on:
     branches: [main]
   pull_request:
 
+# vgi-tika depends on the VGI Java SDK artifacts (farm.query:vgi-core, vgirpc,
+# vgirpc-oauth) which are NOT on Maven Central. They are produced by the sibling
+# repos query-farm/vgi-java (whose :vgi-core subproject publishes `vgi-core`) and
+# query-farm/vgi-rpc-java. We resolve them by checking those repos out and
+# publishing to mavenLocal (mirroring `make publish-deps-local`), then build and
+# test against ~/.m2.
+#
+# The `sdk-available` job gates the heavier unit/e2e jobs on whether the SDK
+# checkouts succeed (they require read access to the sibling repos). If the SDK
+# is unavailable, `compile-deps-check` still runs and fails loudly with a clear
+# message rather than leaving CI silently green or silently broken.
+
 jobs:
-  unit:
+  # Always-runs sanity job that does NOT need the SDK: validate the Gradle build
+  # scripts parse and the task graph configures. The `farm.query:*` SDK artifacts
+  # are only resolved at task EXECUTION time, so `tasks` (configuration only)
+  # succeeds on a clean runner and catches build-script regressions.
+  build-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Validate Gradle build scripts (configuration phase)
+        run: ./gradlew --no-daemon tasks --group build
+
+  # Full unit + E2E: requires the VGI Java SDK. Checks out the sibling SDK repos
+  # and publishes them to mavenLocal. If the checkouts fail (no access), the
+  # job fails with a documented reason instead of silently passing.
+  unit-and-e2e:
     runs-on: ubuntu-latest
     steps:
       - name: Check out vgi-tika
@@ -14,25 +44,39 @@ jobs:
         with:
           path: vgi-tika
 
-      # vgi-tika resolves the farm.query:* SDK artifacts (vgi-core, vgirpc,
-      # vgirpc-oauth) from mavenLocal. Build them from source here and publish
-      # to ~/.m2, mirroring `make publish-deps-local`. vgi-java composite-includes
-      # vgi-rpc-java at ../Development/vgi-rpc-java, so reproduce that layout.
-      - name: Check out vgi-java
+      # The VGI Java SDK source. vgi-java composite-includes vgi-rpc-java at the
+      # path ../Development/vgi-rpc-java (relative to the vgi-java checkout), so
+      # reproduce that layout. `publishToMavenLocal` then populates ~/.m2 with
+      # vgi-core / vgirpc / vgirpc-oauth at version 0.1.0-SNAPSHOT.
+      - name: Check out vgi-java (SDK)
+        id: checkout_vgi_java
         uses: actions/checkout@v4
+        continue-on-error: true
         with:
           repository: query-farm/vgi-java
           ref: main
           path: vgi-java
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.VGI_SDK_TOKEN || secrets.GITHUB_TOKEN }}
 
-      - name: Check out vgi-rpc-java
+      - name: Check out vgi-rpc-java (SDK)
+        id: checkout_vgi_rpc
         uses: actions/checkout@v4
+        continue-on-error: true
         with:
           repository: query-farm/vgi-rpc-java
           ref: main
           path: Development/vgi-rpc-java
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.VGI_SDK_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Fail loudly if the SDK checkouts are unavailable
+        if: steps.checkout_vgi_java.outcome != 'success' || steps.checkout_vgi_rpc.outcome != 'success'
+        run: |
+          echo "::error::The VGI Java SDK repos (query-farm/vgi-java, query-farm/vgi-rpc-java)" \
+               "could not be checked out. vgi-tika cannot build without farm.query:vgi-core/" \
+               "vgirpc/vgirpc-oauth on mavenLocal. Grant this workflow read access to those" \
+               "repos (e.g. a VGI_SDK_TOKEN secret) or publish the SDK artifacts to a Maven" \
+               "repository and consume them from there."
+          exit 1
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -46,35 +90,46 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: gradle-${{ runner.os }}-${{ hashFiles('vgi-tika/**/*.gradle*', 'vgi-tika/**/gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
 
       - name: Publish SDK deps to mavenLocal
-        env:
-          VGI_RPC_JAVA_DIR: ${{ github.workspace }}/Development/vgi-rpc-java
         run: |
           cd "$GITHUB_WORKSPACE/Development/vgi-rpc-java" && ./gradlew --no-daemon publishToMavenLocal
           cd "$GITHUB_WORKSPACE/vgi-java"                 && ./gradlew --no-daemon publishToMavenLocal
 
-      - name: Install Tesseract (OCR smoke coverage)
+      - name: Install Tesseract (OCR is exercised but optional — guarded to NULL)
         run: sudo apt-get update && sudo apt-get install -y tesseract-ocr
 
       - name: Java unit tests
         working-directory: vgi-tika
         run: ./gradlew --no-daemon test
 
-      - name: Build fat JAR + boot smoke test
+      - name: Build fat JAR
+        working-directory: vgi-tika
+        run: ./gradlew --no-daemon shadowJar
+
+      - name: Boot smoke test (HTTP health)
         working-directory: vgi-tika
         run: |
-          ./gradlew --no-daemon shadowJar
           JAR=$(ls build/libs/vgi-tika-*-all.jar)
-          java --add-opens=java.base/java.nio=ALL-UNNAMED -jar "$JAR" \
-              --http --host 127.0.0.1 --port 18100 > /tmp/worker.log 2>&1 &
+          # The fat JAR manifest sets Add-Opens, so no --add-opens needed here.
+          java -jar "$JAR" --http --host 127.0.0.1 --port 18100 > /tmp/worker.log 2>&1 &
           WPID=$!
-          for i in $(seq 1 15); do
+          for i in $(seq 1 20); do
             sleep 1
             if curl -fsS http://127.0.0.1:18100/health > /tmp/health.json; then break; fi
           done
           kill $WPID 2>/dev/null || true
           cat /tmp/health.json
           grep -q '"status":"ok"' /tmp/health.json
+
+      - name: Install haybarn-unittest (SQL E2E runner)
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/uv" tool install haybarn-unittest
+
+      - name: SQL E2E (make test-sql)
+        working-directory: vgi-tika
+        run: make test-sql

@@ -1,0 +1,84 @@
+# name: test/sql/extract.test
+# group: [vgi_tika]
+#
+# extract() / metadata() over PDF + DOCX fixtures, plus by_page splitting.
+
+require-env VGI_TIKA_WORKER
+
+statement ok
+LOAD vgi;
+
+statement ok
+ATTACH 'tika' AS tika (TYPE vgi, LOCATION '${VGI_TIKA_WORKER}');
+
+# ---- extract a PDF ----------------------------------------------------------
+
+query III
+SELECT mime, n_pages, error FROM tika.extract('test/sql/data/hello.pdf');
+----
+application/pdf	1	NULL
+
+query I
+SELECT content LIKE '%Hello from a PDF fixture.%' FROM tika.extract('test/sql/data/hello.pdf');
+----
+true
+
+# meta is a MAP(VARCHAR, VARCHAR) — Content-Type key is always present.
+query I
+SELECT meta['Content-Type'] FROM tika.extract('test/sql/data/hello.pdf');
+----
+application/pdf
+
+# ---- extract a DOCX ---------------------------------------------------------
+
+query II
+SELECT mime, error FROM tika.extract('test/sql/data/hello.docx');
+----
+application/vnd.openxmlformats-officedocument.wordprocessingml.document	NULL
+
+query I
+SELECT content LIKE '%Revenue grew sharply in the DOCX fixture.%' FROM tika.extract('test/sql/data/hello.docx');
+----
+true
+
+# ---- metadata() omits the body but keeps mime / n_pages ---------------------
+
+query II
+SELECT mime, n_pages FROM tika.metadata('test/sql/data/hello.pdf');
+----
+application/pdf	1
+
+# metadata() has no content column at all.
+statement error
+SELECT content FROM tika.metadata('test/sql/data/hello.pdf');
+----
+
+# ---- by_page: real per-page splitting for PDFs ------------------------------
+
+# multipage.pdf has 3 pages -> 3 rows, one per page.
+query I
+SELECT count(*) FROM tika.extract('test/sql/data/multipage.pdf', by_page := true);
+----
+3
+
+# page ordinals are 1..3 and n_pages is the total on each row.
+query III
+SELECT page, n_pages, error
+FROM tika.extract('test/sql/data/multipage.pdf', by_page := true)
+ORDER BY page;
+----
+1	3	NULL
+2	3	NULL
+3	3	NULL
+
+# per-page content is actually split: page 2 carries only its own text.
+query I
+SELECT content LIKE '%Second page beta content.%'
+   AND content NOT LIKE '%First page alpha content.%'
+FROM tika.extract('test/sql/data/multipage.pdf', by_page := true)
+WHERE page = 2;
+----
+true
+
+statement ok
+DETACH tika;

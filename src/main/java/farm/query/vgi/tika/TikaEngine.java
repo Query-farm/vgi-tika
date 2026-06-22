@@ -14,12 +14,18 @@ import org.apache.tika.parser.pdf.PDFParserConfig;
 import org.apache.tika.sax.BodyContentHandler;
 import org.xml.sax.ContentHandler;
 
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -94,6 +100,77 @@ public final class TikaEngine {
         }
         return resultFrom(handler.toString(), metadata, null);
     }
+
+    /**
+     * Per-page extraction. For PDFs we use PDFBox's {@link PDFTextStripper} to
+     * split the text-layer body on real page boundaries, yielding one result per
+     * page. For every other format (and for image-only / scanned PDFs handled via
+     * OCR) Tika has no page-boundary signal, so we fall back to a single result
+     * carrying the whole body with {@code page = n_pages}.
+     *
+     * <p>Each per-page result repeats the document-level {@code mime}, {@code lang},
+     * and total {@code n_pages}; the {@code meta} bag rides only on the first page
+     * to avoid duplicating the (potentially large) document metadata on every row.
+     */
+    public List<PageResult> extractByPage(byte[] bytes, Path path, boolean ocrEnabled, String ocrLang) {
+        ExtractResult whole = extract(bytes, path, ocrEnabled, ocrLang);
+        if (whole.error() != null) {
+            return List.of(new PageResult(whole.nPages() != null ? whole.nPages() : 1, whole));
+        }
+
+        boolean isPdf = "application/pdf".equals(whole.mime());
+        // Only split a PDF's text layer when OCR is off; with OCR the body comes
+        // from Tika's Tesseract path, which PDFTextStripper cannot reproduce.
+        if (isPdf && !ocrEnabled) {
+            List<PageResult> pages = splitPdfPages(bytes, path, whole);
+            if (pages != null) {
+                return pages;
+            }
+        }
+
+        int total = whole.nPages() != null ? whole.nPages() : 1;
+        return List.of(new PageResult(total, whole));
+    }
+
+    /**
+     * Split a PDF's text layer into one {@link PageResult} per page. Returns
+     * {@code null} on any failure so the caller can fall back to whole-document
+     * behaviour (never throws — by_page must not regress error capture).
+     */
+    private List<PageResult> splitPdfPages(byte[] bytes, Path path, ExtractResult whole) {
+        try (PDDocument doc = load(bytes, path)) {
+            int total = doc.getNumberOfPages();
+            if (total <= 0) {
+                return List.of(new PageResult(0, whole));
+            }
+            PDFTextStripper stripper = new PDFTextStripper();
+            List<PageResult> pages = new ArrayList<>(total);
+            for (int p = 1; p <= total; p++) {
+                stripper.setStartPage(p);
+                stripper.setEndPage(p);
+                String pageText = stripper.getText(doc);
+                // Document metadata (the meta bag + lang) rides on page 1 only.
+                Map<String, String> meta = p == 1 ? whole.meta() : Map.of();
+                String lang = p == 1 ? whole.lang() : null;
+                ExtractResult pageResult = new ExtractResult(
+                        pageText, whole.mime(), total, lang, meta, null);
+                pages.add(new PageResult(p, pageResult));
+            }
+            return pages;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static PDDocument load(byte[] bytes, Path path) throws IOException {
+        if (path != null) {
+            return Loader.loadPDF(path.toFile());
+        }
+        return Loader.loadPDF(bytes != null ? bytes : new byte[0]);
+    }
+
+    /** One page of a by-page extraction: a 1-based ordinal plus its row payload. */
+    public record PageResult(int page, ExtractResult result) {}
 
     /** Metadata-only extraction (no body text). */
     public ExtractResult metadataOnly(byte[] bytes, Path path) {

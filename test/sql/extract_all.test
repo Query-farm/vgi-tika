@@ -1,0 +1,53 @@
+# name: test/sql/extract_all.test
+# group: [vgi_tika]
+#
+# extract_all over a VALUES list of paths with id passthrough + per-row errors.
+
+require-env VGI_TIKA_WORKER
+
+statement ok
+LOAD vgi;
+
+statement ok
+ATTACH 'tika' AS tika (TYPE vgi, LOCATION '${VGI_TIKA_WORKER}');
+
+# A column of (id, path) rows: two good docs + one missing file (reliable error).
+statement ok
+CREATE TEMP VIEW docs AS
+  SELECT * FROM (VALUES
+    ('a', 'test/sql/data/hello.pdf'),
+    ('b', 'test/sql/data/hello.docx'),
+    ('c', 'test/sql/data/does-not-exist.pdf')
+  ) AS t(id, path);
+
+# id passthrough: every output row keeps its source id; query does NOT fail on
+# the missing-file row (error captured per-row, mime NULL).
+query II
+SELECT id, mime
+FROM tika.extract_all((SELECT id, path FROM docs), id := 'id')
+ORDER BY id;
+----
+a	application/pdf
+b	application/vnd.openxmlformats-officedocument.wordprocessingml.document
+c	NULL
+
+# the bad row has NULL content and a populated error; the good rows do not.
+query II
+SELECT id, error IS NOT NULL AS has_error
+FROM tika.extract_all((SELECT id, path FROM docs), id := 'id')
+ORDER BY id;
+----
+a	false
+b	false
+c	true
+
+# content extracted for the good rows.
+query I
+SELECT content LIKE '%Hello from a PDF fixture.%'
+FROM tika.extract_all((SELECT id, path FROM docs), id := 'id')
+WHERE id = 'a';
+----
+true
+
+statement ok
+DETACH tika;

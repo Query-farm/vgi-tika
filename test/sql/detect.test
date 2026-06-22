@@ -1,0 +1,48 @@
+# name: test/sql/detect.test
+# group: [vgi_tika]
+#
+# MIME and language detection scalars over committed fixtures.
+
+require-env VGI_TIKA_WORKER
+
+# NOTE: under haybarn-unittest `require vgi` SKIPS the file; load explicitly.
+statement ok
+LOAD vgi;
+
+statement ok
+ATTACH 'tika' AS tika (TYPE vgi, LOCATION '${VGI_TIKA_WORKER}');
+
+# ---- detect_mime over a file path -------------------------------------------
+
+query I
+SELECT tika.detect_mime('test/sql/data/hello.pdf');
+----
+application/pdf
+
+query I
+SELECT tika.detect_mime('test/sql/data/hello.docx');
+----
+application/vnd.openxmlformats-officedocument.wordprocessingml.document
+
+# ---- detect_lang / detect_lang_conf -----------------------------------------
+
+# The english.txt fixture is a long English paragraph -> 'en'.
+query I
+SELECT tika.detect_lang((SELECT content FROM tika.extract('test/sql/data/english.txt')));
+----
+en
+
+# Confidence for that paragraph is high (> 0.5).
+query I
+SELECT tika.detect_lang_conf((SELECT content FROM tika.extract('test/sql/data/english.txt'))) > 0.5;
+----
+true
+
+# Blank / NULL text -> NULL language (no crash).
+query I
+SELECT tika.detect_lang('');
+----
+NULL
+
+statement ok
+DETACH tika;
