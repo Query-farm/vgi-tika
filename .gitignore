@@ -1,0 +1,5 @@
+build/
+.gradle/
+vendor/
+*.class
+duckdb_unittest_tempdir/
