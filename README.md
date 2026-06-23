@@ -1,3 +1,9 @@
+<p align="center">
+  <img src="docs/vgi-logo.png" alt="Vector Gateway Interface (VGI)" width="320">
+</p>
+
+<p align="center"><em>A <a href="https://query.farm">Query.Farm</a> VGI worker for DuckDB.</em></p>
+
 # vgi-tika
 
 [![test](https://github.com/Query-farm/vgi-tika/actions/workflows/test.yml/badge.svg)](https://github.com/Query-farm/vgi-tika/actions/workflows/test.yml)
@@ -208,3 +214,12 @@ from the JUnit PDFBox/POI builders via `make fixtures` (Gradle `generateSqlFixtu
   Arrow vector type.
 - The `meta` column is a DuckDB `MAP(VARCHAR, VARCHAR)`, written via Arrow's
   `MapVector`/`UnionMapWriter`.
+
+---
+
+## Authorship & License
+
+Written by [Query.Farm](https://query.farm) — every VGI worker is designed and built by Query.Farm.
+
+Copyright 2026 Query Farm LLC - https://query.farm
+
