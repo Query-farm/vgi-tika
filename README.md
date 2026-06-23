@@ -4,7 +4,9 @@
 
 <p align="center"><em>A <a href="https://query.farm">Query.Farm</a> VGI worker for DuckDB.</em></p>
 
-# vgi-tika
+# Extract Text, Metadata & OCR from PDF, DOCX & More in DuckDB
+
+> **vgi-tika** · a [Query.Farm](https://query.farm) VGI worker · powered by Apache Tika
 
 [![test](https://github.com/Query-farm/vgi-tika/actions/workflows/test.yml/badge.svg)](https://github.com/Query-farm/vgi-tika/actions/workflows/test.yml)
 
