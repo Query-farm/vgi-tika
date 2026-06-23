@@ -4,10 +4,18 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 # The VGI Java SDK (farm.query:vgi, farm.query:vgirpc) is published to Maven
 # Central, so this build is fully self-contained — no sibling-repo checkout,
 # no mavenLocal, no composite build. A clean runner just resolves from Central.
+#
+# The SQL end-to-end suite (test/sql/*.test) runs against the worker fat JAR
+# through the real signed `vgi` DuckDB community extension via a prebuilt
+# standalone `haybarn-unittest` — no C++ extension build. See ci/README.md.
+
+permissions:
+  contents: read
 
 jobs:
   build-and-test:
@@ -20,15 +28,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: gradle-${{ runner.os }}-
+          cache: gradle
 
       - name: Install Tesseract (OCR is exercised but optional — guarded to NULL)
         run: sudo apt-get update && sudo apt-get install -y tesseract-ocr
@@ -53,11 +53,65 @@ jobs:
           cat /tmp/health.json
           grep -q '"status":"ok"' /tmp/health.json
 
-      - name: Install uv + haybarn-unittest (SQL E2E runner)
+  # Resolve the latest published haybarn release once, so the suite always tests
+  # the current standalone runner (and we never hardcode/pin it).
+  resolve-haybarn:
+    runs-on: ubuntu-latest
+    outputs:
+      release: ${{ steps.r.outputs.release }}
+    steps:
+      - id: r
         run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          "$HOME/.local/bin/uv" tool install haybarn-unittest
+          REL=$(gh release view --repo Query-farm-haybarn/haybarn --json tagName --jq .tagName)
+          echo "release=$REL" >> "$GITHUB_OUTPUT"
+          echo "Latest haybarn release: $REL"
+        env:
+          GH_TOKEN: ${{ github.token }}
 
-      - name: SQL E2E (make test-sql)
-        run: make test-sql
+  # SQL E2E: build the worker fat JAR, then run the sqllogictest suite against it
+  # through the real signed `vgi` community extension via standalone haybarn.
+  integration:
+    needs: resolve-haybarn
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Install Tesseract (OCR is exercised but optional — guarded to NULL)
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr
+
+      - name: Build worker fat JAR
+        run: ./gradlew --no-daemon shadowJar
+
+      - name: Download haybarn-unittest
+        run: |
+          gh release download "$HAYBARN_RELEASE" \
+            --repo Query-farm-haybarn/haybarn \
+            --pattern 'haybarn_unittest-linux-amd64.zip' \
+            --output haybarn-unittest.zip --clobber
+          mkdir -p hb && unzip -o -q haybarn-unittest.zip -d hb
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HAYBARN_RELEASE: ${{ needs.resolve-haybarn.outputs.release }}
+
+      - name: Resolve runner + worker paths
+        run: |
+          # Absolute paths: run-integration.sh cd's into a staging dir before
+          # invoking the runner, and DuckDB spawns the worker LOCATION as a
+          # subprocess — so both must be absolute.
+          UNITTEST="$PWD/$(find hb -name 'haybarn-unittest' -type f | head -1)"
+          chmod +x "$UNITTEST"
+          JAR="$PWD/$(ls build/libs/vgi-tika-*-all.jar | head -1)"
+          echo "Worker JAR: $JAR"
+          echo "HAYBARN_UNITTEST=$UNITTEST" >> "$GITHUB_ENV"
+          # The fat JAR manifest sets Add-Opens, so a bare `java -jar` works.
+          echo "VGI_TIKA_WORKER=java -jar $JAR" >> "$GITHUB_ENV"
+
+      - name: Run SQL E2E suite
+        run: ci/run-integration.sh
