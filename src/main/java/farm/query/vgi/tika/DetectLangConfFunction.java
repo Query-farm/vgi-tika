@@ -1,12 +1,15 @@
 package farm.query.vgi.tika;
 
 import farm.query.vgi.function.FunctionMetadata;
+import farm.query.vgi.protocol.FunctionExample;
 import farm.query.vgi.scalar.ScalarFn;
 import farm.query.vgi.scalar.Vector;
 import org.apache.arrow.vector.Float8Vector;
 import org.apache.arrow.vector.VarCharVector;
 import org.apache.tika.language.detect.LanguageDetector;
 import org.apache.tika.language.detect.LanguageResult;
+
+import java.util.List;
 
 /**
  * {@code tika.detect_lang_conf(text) -> DOUBLE} — the confidence (0.0–1.0) of the
@@ -38,7 +41,27 @@ public final class DetectLangConfFunction extends ScalarFn {
     }
 
     @Override public FunctionMetadata metadata() {
-        return FunctionMetadata.describe(description()).withCategories("text", "detection", "tika");
+        return FunctionMetadata.describe(description())
+                .withCategories("text", "detection", "tika")
+                .withExamples(List.of(
+                        new FunctionExample(
+                                "SELECT tika.main.detect_lang_conf('The quick brown fox jumps over the lazy dog.');",
+                                "Confidence (0.0-1.0) of the top detected language for a "
+                                        + "piece of text.",
+                                null),
+                        new FunctionExample(
+                                "SELECT tika.main.detect_lang(content) AS lang, "
+                                        + "tika.main.detect_lang_conf(content) AS conf "
+                                        + "FROM tika.main.extract('/docs/report.pdf');",
+                                "Report the detected language and its confidence for an "
+                                        + "extracted document body.",
+                                null)))
+                .withTag("vgi.example_queries", Main.exampleQueriesTag(
+                        "SELECT tika.main.detect_lang_conf('The quick brown fox jumps over the lazy dog.');",
+                        "Confidence (0.0-1.0) of the top detected language for a piece of text.",
+                        "SELECT tika.main.detect_lang(content) AS lang, tika.main.detect_lang_conf(content) AS conf "
+                                + "FROM tika.main.extract('/docs/report.pdf');",
+                        "Report the detected language and its confidence for an extracted document body."));
     }
 
     public void compute(@Vector("text") VarCharVector in, Float8Vector out) {

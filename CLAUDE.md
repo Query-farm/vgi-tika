@@ -57,7 +57,7 @@ Makefile                     build / fixtures / test-unit / test-sql / test / cl
 
 ## SDK dependency & CI (self-contained via Maven Central)
 
-The worker depends on the VGI Java SDK `farm.query:vgi:0.4.0` (the worker/catalog
+The worker depends on the VGI Java SDK `farm.query:vgi:0.5.0` (the worker/catalog
 API; pulls in `farm.query:vgirpc:0.10.2` transitively — declared explicitly since
 the code imports `farm.query.vgirpc.*`). **It's on Maven Central**, so the build
 is fully self-contained: no sibling checkout, no `mavenLocal`, no composite build.
@@ -71,7 +71,7 @@ Central, runs JUnit + shadowJar + an HTTP boot smoke test + `make test-sql`.
   0.x records gained components over time — `TableInitParams` picked up `atUnit`,
   `atValue`, `storage`; `TableInOutInitParams` picked up `storage` (the
   "late_materialization" / 31-vs-30 skew that an older SDK couldn't satisfy).
-  Pinning the current release (0.4.0) is what fixes it — there is no local patch.
+  Pinning the current release (0.5.0) is what fixes it — there is no local patch.
   The in-process test driver (`TestSupport`, `ExtractAllTest`) constructs these
   records directly, so an SDK bump can require appending trailing `null`s there;
   get the exact constructor with `javap -cp <vgi jar> farm.query.vgi.table.TableInitParams`.

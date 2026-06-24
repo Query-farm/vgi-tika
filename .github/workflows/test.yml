@@ -134,3 +134,38 @@ jobs:
         run: ci/run-integration.sh
         env:
           TRANSPORT: ${{ matrix.transport }}
+
+  # Metadata quality: build the worker fat JAR (same build as the integration
+  # job) and run the vgi-lint metadata linter against it as a subprocess/stdio
+  # worker (`java -jar <abs jar>`). The linter force-installs the signed `vgi`
+  # community extension itself and fails the job on any finding at info or above.
+  metadata-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Install Tesseract (OCR is exercised but optional — guarded to NULL)
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr
+
+      - name: Build worker fat JAR
+        run: ./gradlew --no-daemon shadowJar
+
+      - name: Resolve worker launch command
+        run: |
+          JAR="$PWD/$(ls build/libs/vgi-tika-*-all.jar | head -1)"
+          echo "Worker JAR: $JAR"
+          # The fat JAR manifest sets Add-Opens, so a bare `java -jar` works.
+          echo "VGI_TIKA_WORKER=java -jar $JAR" >> "$GITHUB_ENV"
+
+      - name: vgi-lint
+        uses: Query-farm/vgi-lint-check@v1
+        with:
+          location: ${{ env.VGI_TIKA_WORKER }}
+          fail-on: info

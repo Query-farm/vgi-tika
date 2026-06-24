@@ -2,10 +2,13 @@ package farm.query.vgi.tika;
 
 import farm.query.vgi.function.Arguments;
 import farm.query.vgi.function.FunctionMetadata;
+import farm.query.vgi.protocol.FunctionExample;
 import farm.query.vgi.scalar.ScalarFn;
 import farm.query.vgi.scalar.Setting;
 import farm.query.vgi.scalar.Vector;
 import farm.query.vgi.types.Schemas;
+
+import java.util.List;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VarBinaryVector;
 import org.apache.arrow.vector.VarCharVector;
@@ -38,7 +41,24 @@ public final class OcrFunction extends ScalarFn {
     }
 
     @Override public FunctionMetadata metadata() {
-        return FunctionMetadata.describe(description()).withCategories("document", "ocr", "tika");
+        return FunctionMetadata.describe(description())
+                .withCategories("document", "ocr", "tika")
+                .withExamples(List.of(
+                        new FunctionExample(
+                                "SELECT tika.main.ocr('/docs/scan.png');",
+                                "OCR an image file with the default English model "
+                                        + "(NULL if Tesseract is not installed).",
+                                null),
+                        new FunctionExample(
+                                "SELECT tika.main.ocr(read_blob('/docs/scan.png'), lang := 'eng+deu');",
+                                "OCR image bytes using multiple Tesseract trained-data "
+                                        + "languages (English + German).",
+                                null)))
+                .withTag("vgi.example_queries", Main.exampleQueriesTag(
+                        "SELECT tika.main.ocr('/docs/scan.png');",
+                        "OCR an image file with the default English model (NULL if Tesseract is not installed).",
+                        "SELECT tika.main.ocr(read_blob('/docs/scan.png'), lang := 'eng+deu');",
+                        "OCR image bytes using multiple Tesseract trained-data languages (English + German)."));
     }
 
     @Override protected ArrowType outputType(Schema inputSchema, Arguments args) {

@@ -5,6 +5,7 @@ import farm.query.vgi.function.Arguments;
 import farm.query.vgi.function.FunctionMetadata;
 import farm.query.vgi.internal.SchemaUtil;
 import farm.query.vgi.protocol.BindResponse;
+import farm.query.vgi.protocol.FunctionExample;
 import farm.query.vgi.tableinout.TableInOutBindParams;
 import farm.query.vgi.tableinout.TableInOutExchangeState;
 import farm.query.vgi.tableinout.TableInOutFunction;
@@ -52,8 +53,47 @@ public final class ExtractAllFunction implements TableInOutFunction {
         return FunctionMetadata.describe(
                         "Extract text + metadata for a whole column of documents (paths or bytes), "
                                 + "with an id column passed through onto each output row.")
-                .withCategories("document", "extraction", "tika");
+                .withCategories("document", "extraction", "tika")
+                .withExamples(List.of(
+                        new FunctionExample(
+                                "SELECT id, content, mime FROM tika.main.extract_all("
+                                        + "(SELECT id, path FROM files), id := 'id');",
+                                "Extract every document referenced by a `path` column, keeping the "
+                                        + "source `id` on each output row to join results back.",
+                                null),
+                        new FunctionExample(
+                                "SELECT id, content FROM tika.main.extract_all("
+                                        + "(SELECT id, body FROM docs), id := 'id', doc_column := 'body');",
+                                "Extract from a BLOB column (`body`) of inline document bytes, with "
+                                        + "the `id` column passed through.",
+                                null)))
+                .withTag("vgi.columns_md", COLUMNS_MD)
+                .withTag("vgi.example_queries", Main.exampleQueriesTag(
+                        "SELECT id, content, mime FROM tika.main.extract_all((SELECT id, path FROM files), id := 'id');",
+                        "Extract every document referenced by a `path` column, keeping the source `id` "
+                                + "on each output row to join results back.",
+                        "SELECT id, content FROM tika.main.extract_all((SELECT id, body FROM docs), "
+                                + "id := 'id', doc_column := 'body');",
+                        "Extract from a BLOB column (`body`) of inline document bytes, with the `id` column passed through."));
     }
+
+    /**
+     * Markdown table of the columns returned by {@code extract_all}. The output
+     * is the {@code extract} column set, optionally prefixed by the passthrough
+     * column named by the {@code id} argument (copied verbatim from each input
+     * row); the optional passthrough is noted inline.
+     */
+    static final String COLUMNS_MD =
+            "| column | type | description |\n"
+                    + "|---|---|---|\n"
+                    + "| `<id>` | (source type) | Passthrough column named by the `id` argument, copied "
+                    + "from each input row. Present only when `id` is given. |\n"
+                    + "| `content` | VARCHAR | Extracted plain-text body of the document, or NULL on error. |\n"
+                    + "| `mime` | VARCHAR | Detected media type, e.g. `application/pdf`. |\n"
+                    + "| `n_pages` | INTEGER | Page/slide/sheet count when the format reports it, else NULL. |\n"
+                    + "| `lang` | VARCHAR | Document language code if Tika reported one. |\n"
+                    + "| `meta` | MAP(VARCHAR, VARCHAR) | Full Tika metadata bag. |\n"
+                    + "| `error` | VARCHAR | Per-row parse error message, or NULL on success. |";
 
     @Override public List<ArgSpec> argumentSpecs() {
         return List.of(

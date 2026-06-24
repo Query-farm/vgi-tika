@@ -5,6 +5,7 @@ import farm.query.vgi.function.Arguments;
 import farm.query.vgi.function.FunctionMetadata;
 import farm.query.vgi.internal.SchemaUtil;
 import farm.query.vgi.protocol.BindResponse;
+import farm.query.vgi.protocol.FunctionExample;
 import farm.query.vgi.table.TableBindParams;
 import farm.query.vgi.table.TableFunction;
 import farm.query.vgi.table.TableInitParams;
@@ -36,8 +37,34 @@ public final class MetadataFunction implements TableFunction {
         return FunctionMetadata.describe(
                         "Extract document metadata (MIME, page count, language, full metadata MAP) "
                                 + "without the body text, via Apache Tika.")
-                .withCategories("document", "metadata", "tika");
+                .withCategories("document", "metadata", "tika")
+                .withExamples(List.of(
+                        new FunctionExample(
+                                "SELECT mime, n_pages, lang FROM tika.main.metadata('/docs/report.pdf');",
+                                "Read a document's MIME type, page count, and language without "
+                                        + "extracting the body text.",
+                                null),
+                        new FunctionExample(
+                                "SELECT meta['Author'] AS author FROM tika.main.metadata('/docs/report.docx');",
+                                "Read a single metadata field (e.g. the author) from the `meta` MAP.",
+                                null)))
+                .withTag("vgi.columns_md", COLUMNS_MD)
+                .withTag("vgi.example_queries", Main.exampleQueriesTag(
+                        "SELECT mime, n_pages, lang FROM tika.main.metadata('/docs/report.pdf');",
+                        "Read a document's MIME type, page count, and language without extracting the body text.",
+                        "SELECT meta['Author'] AS author FROM tika.main.metadata('/docs/report.docx');",
+                        "Read a single metadata field (e.g. the author) from the `meta` MAP."));
     }
+
+    /** Markdown table of the columns returned by {@code metadata}. */
+    static final String COLUMNS_MD =
+            "| column | type | description |\n"
+                    + "|---|---|---|\n"
+                    + "| `mime` | VARCHAR | Detected media type, e.g. `application/pdf`. |\n"
+                    + "| `n_pages` | INTEGER | Page/slide/sheet count when the format reports it, else NULL. |\n"
+                    + "| `lang` | VARCHAR | Document language code if Tika reported one. |\n"
+                    + "| `meta` | MAP(VARCHAR, VARCHAR) | Full Tika metadata bag. |\n"
+                    + "| `error` | VARCHAR | Per-row parse error message, or NULL on success. |";
 
     @Override public List<ArgSpec> argumentSpecs() {
         // Polymorphic doc arg (VARCHAR path or BLOB bytes) — see ExtractFunction.

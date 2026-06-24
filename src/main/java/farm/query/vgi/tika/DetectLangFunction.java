@@ -1,12 +1,15 @@
 package farm.query.vgi.tika;
 
 import farm.query.vgi.function.FunctionMetadata;
+import farm.query.vgi.protocol.FunctionExample;
 import farm.query.vgi.scalar.ScalarFn;
 import farm.query.vgi.scalar.Vector;
 import org.apache.arrow.vector.VarCharVector;
 import org.apache.arrow.vector.util.Text;
 import org.apache.tika.language.detect.LanguageDetector;
 import org.apache.tika.language.detect.LanguageResult;
+
+import java.util.List;
 
 /**
  * {@code tika.detect_lang(text) -> VARCHAR} — detect the ISO-639 language code
@@ -33,7 +36,24 @@ public final class DetectLangFunction extends ScalarFn {
     }
 
     @Override public FunctionMetadata metadata() {
-        return FunctionMetadata.describe(description()).withCategories("text", "detection", "tika");
+        return FunctionMetadata.describe(description())
+                .withCategories("text", "detection", "tika")
+                .withExamples(List.of(
+                        new FunctionExample(
+                                "SELECT tika.main.detect_lang('The quick brown fox jumps over the lazy dog.');",
+                                "Detect the ISO-639 language code of a piece of text "
+                                        + "(returns 'en' here).",
+                                null),
+                        new FunctionExample(
+                                "SELECT content, tika.main.detect_lang(content) AS lang "
+                                        + "FROM tika.main.extract('/docs/report.pdf');",
+                                "Detect the language of an extracted document's body text.",
+                                null)))
+                .withTag("vgi.example_queries", Main.exampleQueriesTag(
+                        "SELECT tika.main.detect_lang('The quick brown fox jumps over the lazy dog.');",
+                        "Detect the ISO-639 language code of a piece of text (returns 'en' here).",
+                        "SELECT content, tika.main.detect_lang(content) AS lang FROM tika.main.extract('/docs/report.pdf');",
+                        "Detect the language of an extracted document's body text."));
     }
 
     public void compute(@Vector("text") VarCharVector in, VarCharVector out) {

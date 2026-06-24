@@ -2,9 +2,12 @@ package farm.query.vgi.tika;
 
 import farm.query.vgi.function.Arguments;
 import farm.query.vgi.function.FunctionMetadata;
+import farm.query.vgi.protocol.FunctionExample;
 import farm.query.vgi.scalar.ScalarFn;
 import farm.query.vgi.scalar.Vector;
 import farm.query.vgi.types.Schemas;
+
+import java.util.List;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VarBinaryVector;
 import org.apache.arrow.vector.VarCharVector;
@@ -35,7 +38,24 @@ public final class DetectMimeFunction extends ScalarFn {
     }
 
     @Override public FunctionMetadata metadata() {
-        return FunctionMetadata.describe(description()).withCategories("document", "detection", "tika");
+        return FunctionMetadata.describe(description())
+                .withCategories("document", "detection", "tika")
+                .withExamples(List.of(
+                        new FunctionExample(
+                                "SELECT tika.main.detect_mime('/docs/report.pdf');",
+                                "Detect the MIME type of a document from its file path "
+                                        + "(returns e.g. 'application/pdf').",
+                                null),
+                        new FunctionExample(
+                                "SELECT tika.main.detect_mime(read_blob('/docs/report.pdf'));",
+                                "Detect the MIME type from the document's bytes (a BLOB) "
+                                        + "instead of a path.",
+                                null)))
+                .withTag("vgi.example_queries", Main.exampleQueriesTag(
+                        "SELECT tika.main.detect_mime('/docs/report.pdf');",
+                        "Detect the MIME type of a document from its file path (returns e.g. 'application/pdf').",
+                        "SELECT tika.main.detect_mime(read_blob('/docs/report.pdf'));",
+                        "Detect the MIME type from the document's bytes (a BLOB) instead of a path."));
     }
 
     /** Always VARCHAR, regardless of the (any-typed) input. */

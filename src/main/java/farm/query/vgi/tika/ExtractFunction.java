@@ -5,6 +5,7 @@ import farm.query.vgi.function.Arguments;
 import farm.query.vgi.function.FunctionMetadata;
 import farm.query.vgi.internal.SchemaUtil;
 import farm.query.vgi.protocol.BindResponse;
+import farm.query.vgi.protocol.FunctionExample;
 import farm.query.vgi.table.TableBindParams;
 import farm.query.vgi.table.TableFunction;
 import farm.query.vgi.table.TableInitParams;
@@ -47,8 +48,45 @@ public final class ExtractFunction implements TableFunction {
         return FunctionMetadata.describe(
                         "Extract text, metadata, language, and page count from a document (PDF, DOCX, "
                                 + "PPTX, XLSX, HTML, EML, RTF, ODF, images) via Apache Tika.")
-                .withCategories("document", "extraction", "tika");
+                .withCategories("document", "extraction", "tika")
+                .withExamples(List.of(
+                        new FunctionExample(
+                                "SELECT content, mime, n_pages FROM tika.main.extract('/docs/report.pdf');",
+                                "Extract the body text, MIME type, and page count of a single document.",
+                                null),
+                        new FunctionExample(
+                                "SELECT page, content FROM tika.main.extract('/docs/report.pdf', by_page := true);",
+                                "Split a PDF into one row per page (leading `page` column).",
+                                null),
+                        new FunctionExample(
+                                "SELECT meta['Content-Type'] AS ct FROM tika.main.extract(read_blob('/docs/report.pdf'));",
+                                "Extract from document bytes (a BLOB) and read a metadata key from the `meta` MAP.",
+                                null)))
+                .withTag("vgi.columns_md", COLUMNS_MD)
+                .withTag("vgi.example_queries", Main.exampleQueriesTag(
+                        "SELECT content, mime, n_pages FROM tika.main.extract('/docs/report.pdf');",
+                        "Extract the body text, MIME type, and page count of a single document.",
+                        "SELECT page, content FROM tika.main.extract('/docs/report.pdf', by_page := true);",
+                        "Split a PDF into one row per page (leading `page` column).",
+                        "SELECT meta['Content-Type'] AS ct FROM tika.main.extract(read_blob('/docs/report.pdf'));",
+                        "Extract from document bytes (a BLOB) and read a metadata key from the `meta` MAP."));
     }
+
+    /**
+     * Markdown table of the columns returned by {@code extract}. The shape is
+     * dynamic ({@code by_page := true} prepends a leading {@code page} column);
+     * the optional column is noted inline.
+     */
+    static final String COLUMNS_MD =
+            "| column | type | description |\n"
+                    + "|---|---|---|\n"
+                    + "| `page` | INTEGER | 1-based page/slide/sheet ordinal. Present only when `by_page := true`. |\n"
+                    + "| `content` | VARCHAR | Extracted plain-text body of the document (or page), or NULL on error. |\n"
+                    + "| `mime` | VARCHAR | Detected media type, e.g. `application/pdf`. |\n"
+                    + "| `n_pages` | INTEGER | Page/slide/sheet count when the format reports it, else NULL. |\n"
+                    + "| `lang` | VARCHAR | Document language code if Tika reported one in the metadata. |\n"
+                    + "| `meta` | MAP(VARCHAR, VARCHAR) | Full Tika metadata bag. |\n"
+                    + "| `error` | VARCHAR | Per-row parse error message, or NULL on success. |";
 
     @Override public List<ArgSpec> argumentSpecs() {
         // Polymorphic doc arg: an any-typed positional so DuckDB binds both a
