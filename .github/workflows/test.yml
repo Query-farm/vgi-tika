@@ -70,9 +70,22 @@ jobs:
 
   # SQL E2E: build the worker fat JAR, then run the sqllogictest suite against it
   # through the real signed `vgi` community extension via standalone haybarn.
+  #
+  # The SAME suite runs once per VGI transport (subprocess/stdio, HTTP, AF_UNIX
+  # launcher). The vgi extension picks the transport from the worker LOCATION:
+  #   subprocess -> `java -jar <jar>`        (DuckDB spawns it, Arrow over stdio)
+  #   http       -> `http://127.0.0.1:<p>`   (we boot `--http`, wait /health 200)
+  #   unix       -> `unix://<sock>`          (we boot `--unix <sock>`, wait sock)
+  # The vgi Java SDK Worker.runFromArgs supports --http/--host/--port (serves
+  # /health) and --unix <path>. See ci/README.md.
   integration:
     needs: resolve-haybarn
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        transport: [subprocess, http, unix]
+    name: SQL E2E (${{ matrix.transport }})
     steps:
       - uses: actions/checkout@v4
 
@@ -103,15 +116,21 @@ jobs:
       - name: Resolve runner + worker paths
         run: |
           # Absolute paths: run-integration.sh cd's into a staging dir before
-          # invoking the runner, and DuckDB spawns the worker LOCATION as a
-          # subprocess — so both must be absolute.
+          # invoking the runner, and (subprocess) DuckDB spawns the worker
+          # LOCATION as a subprocess — so both must be absolute. For http/unix
+          # the script boots the JAR itself (cwd = stage dir).
           UNITTEST="$PWD/$(find hb -name 'haybarn-unittest' -type f | head -1)"
           chmod +x "$UNITTEST"
           JAR="$PWD/$(ls build/libs/vgi-tika-*-all.jar | head -1)"
           echo "Worker JAR: $JAR"
           echo "HAYBARN_UNITTEST=$UNITTEST" >> "$GITHUB_ENV"
-          # The fat JAR manifest sets Add-Opens, so a bare `java -jar` works.
+          # subprocess transport uses this stdio command; http/unix derive the
+          # JAR path from it (or from VGI_TIKA_WORKER_JAR). The fat JAR manifest
+          # sets Add-Opens, so a bare `java -jar` works.
           echo "VGI_TIKA_WORKER=java -jar $JAR" >> "$GITHUB_ENV"
+          echo "VGI_TIKA_WORKER_JAR=$JAR" >> "$GITHUB_ENV"
 
       - name: Run SQL E2E suite
         run: ci/run-integration.sh
+        env:
+          TRANSPORT: ${{ matrix.transport }}
