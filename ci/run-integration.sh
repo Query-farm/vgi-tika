@@ -229,6 +229,11 @@ if grep -Eq 'skipped tests?|tests were skipped' "$OUT"; then
     echo "::error::network-error skip (matches 'HTTP'/'Unable to connect') swallowed a" >&2
     echo "::error::real error. This is NOT a clean pass." >&2
     grep -A3 'Skipped tests for the following reasons' "$OUT" >&2 || true
+    if [ -f "$STAGE/worker-http.log" ]; then
+      echo "----- worker-http.log (server-side error the runner masked) -----" >&2
+      cat "$STAGE/worker-http.log" >&2 || true
+      echo "----- end worker-http.log -----" >&2
+    fi
     exit 1
   fi
 fi

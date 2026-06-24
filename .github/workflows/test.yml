@@ -130,34 +130,6 @@ jobs:
           echo "VGI_TIKA_WORKER=java -jar $JAR" >> "$GITHUB_ENV"
           echo "VGI_TIKA_WORKER_JAR=$JAR" >> "$GITHUB_ENV"
 
-      - name: DEBUG http real error (temporary)
-        if: matrix.transport == 'http'
-        run: |
-          set -x
-          STAGE=$(mktemp -d); mkdir -p "$STAGE/test/sql"
-          cp -R test/sql/data "$STAGE/test/sql/data" || true
-          ( cd "$STAGE" && exec java -jar "$VGI_TIKA_WORKER_JAR" --http --host 127.0.0.1 --port 18331 ) >"$STAGE/w.log" 2>&1 &
-          WPID=$!
-          for i in $(seq 1 40); do curl -fsS http://127.0.0.1:18331/health -o /dev/null 2>/dev/null && break; sleep 0.5; done
-          curl -fsS http://127.0.0.1:18331/health; echo
-          # Grab a duckdb CLI matching the runner's version.
-          curl -fsSL https://install.duckdb.org | sh || true
-          export PATH="$HOME/.duckdb/cli/latest:$PATH"
-          DUCK=$(command -v duckdb || echo "$HOME/.duckdb/cli/latest/duckdb")
-          cd "$STAGE"
-          for q in \
-            "SELECT mime FROM tika.extract('test/sql/data/hello.pdf');" \
-            "SELECT mime, n_pages FROM tika.metadata('test/sql/data/hello.pdf');" \
-            "SELECT content IS NOT NULL FROM tika.extract('test/sql/data/hello.pdf', by_page := true);" \
-            "SELECT count(*) FROM tika.extract_all((SELECT 'test/sql/data/hello.pdf' AS p), doc_column := 'p');" ; do
-            echo "===== QUERY: $q ====="
-            "$DUCK" -c "INSTALL vgi FROM community; LOAD vgi; INSTALL httpfs FROM core; LOAD httpfs; ATTACH 'tika' AS tika (TYPE vgi, LOCATION 'http://127.0.0.1:18331'); $q" 2>&1 | head -30 || true
-          done
-          echo "===== worker log tail ====="; tail -30 "$STAGE/w.log" || true
-          kill $WPID 2>/dev/null || true
-        env:
-          VGI_TIKA_WORKER_JAR: ${{ env.VGI_TIKA_WORKER_JAR }}
-
       - name: Run SQL E2E suite
         run: ci/run-integration.sh
         env:
