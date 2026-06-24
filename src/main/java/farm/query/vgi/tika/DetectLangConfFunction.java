@@ -52,15 +52,42 @@ public final class DetectLangConfFunction extends ScalarFn {
                         new FunctionExample(
                                 "SELECT tika.main.detect_lang(content) AS lang, "
                                         + "tika.main.detect_lang_conf(content) AS conf "
-                                        + "FROM tika.main.extract('/docs/report.pdf');",
+                                        + "FROM tika.main.extract('The annual report covers quarterly results.'::BLOB);",
                                 "Report the detected language and its confidence for an "
                                         + "extracted document body.",
                                 null)))
+                .withTags(Meta.objectTags(
+                        "Detect Text Language Confidence",
+                        "## detect_lang_conf\n\n"
+                                + "Return the detector's confidence in the top language it found for a "
+                                + "piece of text, as a continuous score in `0.0`–`1.0`. This is the "
+                                + "companion to `detect_lang`: that function gives the ISO-639 code, this "
+                                + "one gives how sure the model is.\n\n"
+                                + "**Input** — a `VARCHAR` of text.\n\n"
+                                + "**Output** — a `DOUBLE` raw probability (`0.0`–`1.0`), or `NULL` when "
+                                + "the input is `NULL`/blank or no language is detected (mirroring "
+                                + "`detect_lang`'s `NULL`).\n\n"
+                                + "Tika exposes language confidence as a coarse `NONE`/`LOW`/`MEDIUM`/`HIGH` "
+                                + "enum; this function surfaces the underlying raw score so callers can "
+                                + "apply their own threshold (e.g. keep rows where confidence `> 0.5`).",
+                        "# detect_lang_conf\n\n"
+                                + "Returns the confidence (`0.0`–`1.0`) of the top detected language as a "
+                                + "`DOUBLE`.\n\n"
+                                + "## Usage\n\n"
+                                + "Run it alongside `detect_lang` to keep only high-confidence language "
+                                + "tags, or to rank ambiguous rows.\n\n"
+                                + "## Notes\n\n"
+                                + "- Returns `NULL` for `NULL`, blank, or undetected input.\n"
+                                + "- The score is the model's raw probability, not Tika's coarse enum.\n"
+                                + "- Longer text yields more reliable confidence.",
+                        "language confidence, language score, detect language, confidence, "
+                                + "probability, iso-639, language detection, threshold",
+                        "DetectLangConfFunction.java"))
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
                         "SELECT tika.main.detect_lang_conf('The quick brown fox jumps over the lazy dog.');",
                         "Confidence (0.0-1.0) of the top detected language for a piece of text.",
                         "SELECT tika.main.detect_lang(content) AS lang, tika.main.detect_lang_conf(content) AS conf "
-                                + "FROM tika.main.extract('/docs/report.pdf');",
+                                + "FROM tika.main.extract('The annual report covers quarterly results.'::BLOB);",
                         "Report the detected language and its confidence for an extracted document body."));
     }
 

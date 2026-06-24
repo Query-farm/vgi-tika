@@ -42,20 +42,46 @@ public final class DetectMimeFunction extends ScalarFn {
                 .withCategories("document", "detection", "tika")
                 .withExamples(List.of(
                         new FunctionExample(
+                                "SELECT tika.main.detect_mime('Hello, plain text body.'::BLOB);",
+                                "Detect the MIME type of inline document bytes (returns 'text/plain').",
+                                null),
+                        new FunctionExample(
                                 "SELECT tika.main.detect_mime('/docs/report.pdf');",
                                 "Detect the MIME type of a document from its file path "
                                         + "(returns e.g. 'application/pdf').",
-                                null),
-                        new FunctionExample(
-                                "SELECT tika.main.detect_mime(read_blob('/docs/report.pdf'));",
-                                "Detect the MIME type from the document's bytes (a BLOB) "
-                                        + "instead of a path.",
                                 null)))
+                .withTags(Meta.objectTags(
+                        "Detect Document MIME Type",
+                        "## detect_mime\n\n"
+                                + "Sniff the media (MIME) type of a document using Apache Tika's "
+                                + "container-aware detector, working from the document's magic bytes "
+                                + "rather than its file extension.\n\n"
+                                + "**Input** — a single `any`-typed argument resolved at runtime: a "
+                                + "`BLOB` of the raw document bytes, or a `VARCHAR` filesystem path the "
+                                + "worker opens.\n\n"
+                                + "**Output** — a `VARCHAR` media type such as `application/pdf`, "
+                                + "`application/vnd.openxmlformats-officedocument.wordprocessingml.document`, "
+                                + "or `text/plain`; `NULL` for a `NULL` input.\n\n"
+                                + "Use it to route, filter, or validate documents by type before "
+                                + "calling the heavier `extract` / `metadata` table functions.",
+                        "# detect_mime\n\n"
+                                + "Returns the detected media type of a document as a `VARCHAR`.\n\n"
+                                + "## Usage\n\n"
+                                + "Pass either a `BLOB` of document bytes or a `VARCHAR` file path; "
+                                + "detection is content-based (Tika reads the leading bytes), so it does "
+                                + "not rely on the file name.\n\n"
+                                + "## Notes\n\n"
+                                + "- Returns `NULL` for a `NULL` input.\n"
+                                + "- Office formats are correctly disambiguated by inspecting the OOXML/ODF "
+                                + "container, not just the ZIP signature.",
+                        "mime, media type, content type, detect mime, file type, magic bytes, "
+                                + "sniff, content-type, tika detect",
+                        "DetectMimeFunction.java"))
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
+                        "SELECT tika.main.detect_mime('Hello, plain text body.'::BLOB);",
+                        "Detect the MIME type of inline document bytes (returns 'text/plain').",
                         "SELECT tika.main.detect_mime('/docs/report.pdf');",
-                        "Detect the MIME type of a document from its file path (returns e.g. 'application/pdf').",
-                        "SELECT tika.main.detect_mime(read_blob('/docs/report.pdf'));",
-                        "Detect the MIME type from the document's bytes (a BLOB) instead of a path."));
+                        "Detect the MIME type of a document from its file path (returns e.g. 'application/pdf')."));
     }
 
     /** Always VARCHAR, regardless of the (any-typed) input. */

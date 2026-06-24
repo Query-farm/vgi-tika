@@ -66,8 +66,13 @@ public final class Main {
     /** Catalog-level tags surfaced to DuckDB and the vgi-lint metadata linter. */
     static Map<String, String> catalogTags() {
         Map<String, String> tags = new LinkedHashMap<>();
+        tags.put("vgi.title", "Apache Tika Document Extraction");
         tags.put(
-                "vgi.description_llm",
+                "vgi.keywords",
+                "tika, document extraction, text extraction, metadata, ocr, mime, language "
+                        + "detection, pdf, docx, pptx, xlsx, html, email, rtf, odf, tesseract");
+        tags.put(
+                "vgi.doc_llm",
                 "Extract plain text, document metadata, language, page counts, and OCR from "
                         + "binary documents (PDF, DOCX, PPTX, XLSX, HTML, EML/MSG, RTF, ODF, and "
                         + "images) directly in SQL via Apache Tika. Pass a file path (the worker "
@@ -77,7 +82,7 @@ public final class Main {
                         + "`detect_mime`, `detect_lang`, `detect_lang_conf`, and `ocr` scalars "
                         + "for media-type sniffing, language detection, and Tesseract OCR.");
         tags.put(
-                "vgi.description_md",
+                "vgi.doc_md",
                 "# tika\n\n"
                         + "Document text, metadata, language, and OCR extraction over Apache "
                         + "Arrow, powered by [Apache Tika](https://tika.apache.org/).\n\n"
@@ -97,17 +102,41 @@ public final class Main {
     /** Tags for the single `main` schema. */
     static Map<String, String> schemaTags() {
         Map<String, String> tags = new LinkedHashMap<>();
+        tags.put("vgi.title", "Tika — main schema");
         tags.put(
-                "vgi.description_llm",
+                "vgi.keywords",
+                "tika, extract, metadata, extract_all, detect_mime, detect_lang, "
+                        + "detect_lang_conf, ocr, document, text, language, mime");
+        // VGI123 classifying tags — BARE keys (not vgi.-namespaced) for faceting.
+        tags.put("domain", "documents");
+        tags.put("category", "extraction");
+        tags.put("topic", "text-metadata-ocr");
+        tags.put(
+                "vgi.source_url",
+                "https://github.com/Query-farm/vgi-tika/blob/main/src/main/java/farm/query/vgi/tika/Main.java");
+        tags.put(
+                "vgi.doc_llm",
                 "Apache Tika document-extraction functions: extract text/metadata/language/page "
                         + "counts from a document (`extract`, `metadata`), process a column of "
                         + "documents (`extract_all`), and detect a document's MIME type, a text's "
                         + "language and confidence, or OCR images and scanned PDFs (`detect_mime`, "
                         + "`detect_lang`, `detect_lang_conf`, `ocr`).");
         tags.put(
-                "vgi.description_md",
-                "Apache Tika document text, metadata, language, and OCR extraction functions "
-                        + "over Apache Arrow.");
+                "vgi.doc_md",
+                "# tika.main\n\n"
+                        + "Apache Tika document text, metadata, language, and OCR extraction "
+                        + "functions over Apache Arrow. Table functions: `extract`, `metadata`, "
+                        + "`extract_all`; scalars: `detect_mime`, `detect_lang`, "
+                        + "`detect_lang_conf`, `ocr`.");
+        // VGI506 representative example queries for the schema (self-contained).
+        tags.put(
+                "vgi.example_queries",
+                "SELECT content, mime FROM tika.main.extract('A plain-text body.'::BLOB);\n"
+                        + "SELECT mime, n_pages FROM tika.main.metadata('Some document bytes.'::BLOB);\n"
+                        + "SELECT tika.main.detect_mime('Plain text.'::BLOB);\n"
+                        + "SELECT tika.main.detect_lang('The quick brown fox jumps over the lazy dog.');\n"
+                        + "SELECT id, content FROM tika.main.extract_all("
+                        + "(SELECT * FROM (VALUES (1, 'Body bytes.'::BLOB)) AS t(id, body)), id := 'id', doc_column := 'body');");
         return tags;
     }
 

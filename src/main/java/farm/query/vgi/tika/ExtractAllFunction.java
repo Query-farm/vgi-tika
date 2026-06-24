@@ -57,22 +57,59 @@ public final class ExtractAllFunction implements TableInOutFunction {
                 .withExamples(List.of(
                         new FunctionExample(
                                 "SELECT id, content, mime FROM tika.main.extract_all("
-                                        + "(SELECT id, path FROM files), id := 'id');",
-                                "Extract every document referenced by a `path` column, keeping the "
+                                        + "(SELECT * FROM (VALUES (1, 'First body.'::BLOB), (2, 'Second body.'::BLOB)) AS t(id, body)), "
+                                        + "id := 'id', doc_column := 'body');",
+                                "Extract every document in an inline column of bytes, keeping the "
                                         + "source `id` on each output row to join results back.",
                                 null),
                         new FunctionExample(
                                 "SELECT id, content FROM tika.main.extract_all("
-                                        + "(SELECT id, body FROM docs), id := 'id', doc_column := 'body');",
+                                        + "(SELECT * FROM (VALUES (1, 'Inline document bytes.'::BLOB)) AS t(id, body)), "
+                                        + "id := 'id', doc_column := 'body');",
                                 "Extract from a BLOB column (`body`) of inline document bytes, with "
                                         + "the `id` column passed through.",
                                 null)))
-                .withTag("vgi.columns_md", COLUMNS_MD)
+                .withTags(Meta.objectTags(
+                        "Extract All Documents in a Column",
+                        "## extract_all\n\n"
+                                + "A table-in-out function that runs `extract` over a whole column of "
+                                + "documents at once. Stream a relation whose column holds either "
+                                + "filesystem paths (`VARCHAR`) or document bytes (`BLOB`); the function "
+                                + "emits one extract row per input row.\n\n"
+                                + "**Input** — a table argument plus named options: `doc_column` selects "
+                                + "the document column (defaults to the first non-id column); `id` names a "
+                                + "passthrough column that is excluded from parsing and copied verbatim "
+                                + "onto every output row so results join back to the source; `ocr` and "
+                                + "`lang` control OCR as in `extract`.\n\n"
+                                + "**Output** — the `extract` column set (`content`, `mime`, `n_pages`, "
+                                + "`lang`, `meta`, `error`), optionally prefixed by the `id` passthrough "
+                                + "column.\n\n"
+                                + "**Error handling** — per-row: a failed document yields `NULL` content "
+                                + "and an `error` message; the rest of the batch still processes. Use this "
+                                + "to bulk-extract a corpus referenced by a SQL relation.",
+                        "# extract_all\n\n"
+                                + "Bulk-extracts text and metadata for a column of documents, with an "
+                                + "id passthrough.\n\n"
+                                + "## Usage\n\n"
+                                + "Pass a subquery as the table argument; set `doc_column` to the "
+                                + "path/bytes column and `id` to a key column copied onto each result row "
+                                + "for joining back to the source.\n\n"
+                                + "## Notes\n\n"
+                                + "- Accepts a `VARCHAR` path column or a `BLOB` bytes column.\n"
+                                + "- Per-row error capture (NULL `content` + `error`).\n"
+                                + "- See the returned-columns table below for the exact output shape.",
+                        "extract all, bulk extract, batch, column of documents, table function, "
+                                + "passthrough id, corpus, tika, paths, blobs",
+                        "ExtractAllFunction.java"))
+                .withTag("vgi.result_columns_md", COLUMNS_MD)
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
-                        "SELECT id, content, mime FROM tika.main.extract_all((SELECT id, path FROM files), id := 'id');",
-                        "Extract every document referenced by a `path` column, keeping the source `id` "
+                        "SELECT id, content, mime FROM tika.main.extract_all("
+                                + "(SELECT * FROM (VALUES (1, 'First body.'::BLOB), (2, 'Second body.'::BLOB)) AS t(id, body)), "
+                                + "id := 'id', doc_column := 'body');",
+                        "Extract every document in an inline column of bytes, keeping the source `id` "
                                 + "on each output row to join results back.",
-                        "SELECT id, content FROM tika.main.extract_all((SELECT id, body FROM docs), "
+                        "SELECT id, content FROM tika.main.extract_all("
+                                + "(SELECT * FROM (VALUES (1, 'Inline document bytes.'::BLOB)) AS t(id, body)), "
                                 + "id := 'id', doc_column := 'body');",
                         "Extract from a BLOB column (`body`) of inline document bytes, with the `id` column passed through."));
     }

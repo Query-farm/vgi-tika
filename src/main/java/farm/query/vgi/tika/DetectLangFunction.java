@@ -46,13 +46,40 @@ public final class DetectLangFunction extends ScalarFn {
                                 null),
                         new FunctionExample(
                                 "SELECT content, tika.main.detect_lang(content) AS lang "
-                                        + "FROM tika.main.extract('/docs/report.pdf');",
+                                        + "FROM tika.main.extract('Bonjour le monde, ceci est un texte.'::BLOB);",
                                 "Detect the language of an extracted document's body text.",
                                 null)))
+                .withTags(Meta.objectTags(
+                        "Detect Text Language Code",
+                        "## detect_lang\n\n"
+                                + "Identify the dominant natural language of a piece of text and return "
+                                + "its ISO-639 code (e.g. `en`, `fr`, `de`), using Apache Tika's "
+                                + "Optimaize n-gram language detector.\n\n"
+                                + "**Input** — a `VARCHAR` of text (often the `content` column produced "
+                                + "by `extract`).\n\n"
+                                + "**Output** — a short ISO-639 language code, or `NULL` when the input "
+                                + "is `NULL`/blank or no language can be detected confidently.\n\n"
+                                + "Pair it with `detect_lang_conf` to threshold on detection confidence. "
+                                + "Detection is most reliable on at least a sentence or two of text; very "
+                                + "short strings may return `NULL`.",
+                        "# detect_lang\n\n"
+                                + "Returns the ISO-639 language code of a text string.\n\n"
+                                + "## Usage\n\n"
+                                + "Feed it any `VARCHAR` text — typically extracted document bodies — to "
+                                + "tag rows by language for filtering or routing.\n\n"
+                                + "## Notes\n\n"
+                                + "- Returns `NULL` for `NULL`, blank, or low-confidence input.\n"
+                                + "- Backed by the Optimaize models bundled with Tika; accuracy improves "
+                                + "with longer text.\n"
+                                + "- Use `detect_lang_conf` for the matching confidence score.",
+                        "language, detect language, language detection, iso-639, locale, "
+                                + "language code, optimaize, nlp",
+                        "DetectLangFunction.java"))
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
                         "SELECT tika.main.detect_lang('The quick brown fox jumps over the lazy dog.');",
                         "Detect the ISO-639 language code of a piece of text (returns 'en' here).",
-                        "SELECT content, tika.main.detect_lang(content) AS lang FROM tika.main.extract('/docs/report.pdf');",
+                        "SELECT content, tika.main.detect_lang(content) AS lang "
+                                + "FROM tika.main.extract('Bonjour le monde, ceci est un texte en francais.'::BLOB);",
                         "Detect the language of an extracted document's body text."));
     }
 

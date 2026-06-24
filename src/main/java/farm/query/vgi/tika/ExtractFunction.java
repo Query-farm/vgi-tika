@@ -51,26 +51,79 @@ public final class ExtractFunction implements TableFunction {
                 .withCategories("document", "extraction", "tika")
                 .withExamples(List.of(
                         new FunctionExample(
-                                "SELECT content, mime, n_pages FROM tika.main.extract('/docs/report.pdf');",
+                                "SELECT content, mime, n_pages FROM tika.main.extract('A short plain-text body.'::BLOB);",
                                 "Extract the body text, MIME type, and page count of a single document.",
                                 null),
                         new FunctionExample(
-                                "SELECT page, content FROM tika.main.extract('/docs/report.pdf', by_page := true);",
-                                "Split a PDF into one row per page (leading `page` column).",
+                                "SELECT page, content FROM tika.main.extract('Single page body.'::BLOB, by_page := true);",
+                                "Split a document into one row per page (leading `page` column).",
                                 null),
                         new FunctionExample(
-                                "SELECT meta['Content-Type'] AS ct FROM tika.main.extract(read_blob('/docs/report.pdf'));",
+                                "SELECT meta['Content-Type'] AS ct FROM tika.main.extract('Some bytes.'::BLOB);",
                                 "Extract from document bytes (a BLOB) and read a metadata key from the `meta` MAP.",
                                 null)))
-                .withTag("vgi.columns_md", COLUMNS_MD)
+                .withTags(Meta.objectTags(
+                        "Extract Document Text and Metadata",
+                        "## extract\n\n"
+                                + "Parse a single document with Apache Tika and return its plain-text body "
+                                + "together with detected metadata. Handles PDF, DOCX, PPTX, XLSX, HTML, "
+                                + "EML/MSG, RTF, ODF, and image formats.\n\n"
+                                + "**Input** — an `any`-typed `doc` argument: a `VARCHAR` filesystem path "
+                                + "the worker opens, or a `BLOB` of the document bytes. Named options: "
+                                + "`by_page := true` emits one row per page (real per-page splitting for "
+                                + "PDFs, a single fallback row for other formats); `lang` sets the OCR "
+                                + "language; `ocr := true` forces OCR; `strict := true` re-raises parse "
+                                + "errors instead of capturing them.\n\n"
+                                + "**Output** — one row (or one per page) with `content`, `mime`, "
+                                + "`n_pages`, `lang`, a `meta` `MAP(VARCHAR, VARCHAR)`, and an `error` "
+                                + "column.\n\n"
+                                + "**Error handling** — a corrupt or unsupported document yields a row "
+                                + "with `NULL` content and a populated `error` message rather than failing "
+                                + "the whole query, unless `strict := true`.",
+                        "# extract\n\n"
+                                + "Extracts text, metadata, language, and page count from a single "
+                                + "document.\n\n"
+                                + "## Usage\n\n"
+                                + "Pass a file path or document bytes. Use `by_page := true` to fan a PDF "
+                                + "out into per-page rows, `ocr := true` for image-only content, and "
+                                + "`strict := true` to fail loudly on parse errors.\n\n"
+                                + "## Notes\n\n"
+                                + "- Per-row error capture: failures surface in the `error` column "
+                                + "(NULL `content`) unless `strict`.\n"
+                                + "- The `meta` column is a `MAP(VARCHAR, VARCHAR)` of Tika's full "
+                                + "metadata bag.\n"
+                                + "- See the returned-columns table below for the exact output shape.",
+                        "extract, text extraction, document text, pdf, docx, pptx, xlsx, html, "
+                                + "tika, parse document, content, metadata, by_page",
+                        "ExtractFunction.java"))
+                .withTag("vgi.result_columns_md", COLUMNS_MD)
+                .withTag("vgi.executable_examples", EXECUTABLE_EXAMPLES)
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
-                        "SELECT content, mime, n_pages FROM tika.main.extract('/docs/report.pdf');",
+                        "SELECT content, mime, n_pages FROM tika.main.extract('A short plain-text body.'::BLOB);",
                         "Extract the body text, MIME type, and page count of a single document.",
-                        "SELECT page, content FROM tika.main.extract('/docs/report.pdf', by_page := true);",
-                        "Split a PDF into one row per page (leading `page` column).",
-                        "SELECT meta['Content-Type'] AS ct FROM tika.main.extract(read_blob('/docs/report.pdf'));",
+                        "SELECT page, content FROM tika.main.extract('Single page body.'::BLOB, by_page := true);",
+                        "Split a document into one row per page (leading `page` column).",
+                        "SELECT meta['Content-Type'] AS ct FROM tika.main.extract('Some bytes.'::BLOB);",
                         "Extract from document bytes (a BLOB) and read a metadata key from the `meta` MAP."));
     }
+
+    /**
+     * Guaranteed-runnable, catalog-qualified examples (VGI509). Each {@code sql}
+     * is self-contained: it synthesizes a plain-text document via a {@code BLOB}
+     * literal so no external file is needed, and runs as written against an
+     * attached {@code tika} worker. {@code expected_result} is omitted on purpose.
+     */
+    static final String EXECUTABLE_EXAMPLES =
+            "[\n"
+                    + "  {\n"
+                    + "    \"description\": \"Extract the body text and MIME type of inline document bytes.\",\n"
+                    + "    \"sql\": \"SELECT content, mime FROM tika.main.extract('Hello from a plain-text document body.'::BLOB)\"\n"
+                    + "  },\n"
+                    + "  {\n"
+                    + "    \"description\": \"Read a single key from the Tika metadata MAP of a document.\",\n"
+                    + "    \"sql\": \"SELECT meta['Content-Type'] AS content_type FROM tika.main.extract('Some document bytes.'::BLOB)\"\n"
+                    + "  }\n"
+                    + "]";
 
     /**
      * Markdown table of the columns returned by {@code extract}. The shape is

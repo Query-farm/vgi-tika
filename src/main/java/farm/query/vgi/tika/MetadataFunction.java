@@ -40,20 +40,46 @@ public final class MetadataFunction implements TableFunction {
                 .withCategories("document", "metadata", "tika")
                 .withExamples(List.of(
                         new FunctionExample(
-                                "SELECT mime, n_pages, lang FROM tika.main.metadata('/docs/report.pdf');",
+                                "SELECT mime, n_pages, lang FROM tika.main.metadata('A short document body.'::BLOB);",
                                 "Read a document's MIME type, page count, and language without "
                                         + "extracting the body text.",
                                 null),
                         new FunctionExample(
-                                "SELECT meta['Author'] AS author FROM tika.main.metadata('/docs/report.docx');",
-                                "Read a single metadata field (e.g. the author) from the `meta` MAP.",
+                                "SELECT meta['Content-Type'] AS ct FROM tika.main.metadata('Some bytes.'::BLOB);",
+                                "Read a single metadata field from the `meta` MAP.",
                                 null)))
-                .withTag("vgi.columns_md", COLUMNS_MD)
+                .withTags(Meta.objectTags(
+                        "Extract Document Metadata Only",
+                        "## metadata\n\n"
+                                + "Like `extract`, but returns only a document's metadata — its MIME "
+                                + "type, page count, language, and the full Tika metadata bag — without "
+                                + "the (potentially large) body text. One row per call.\n\n"
+                                + "**Input** — an `any`-typed `doc` argument: a `VARCHAR` path the worker "
+                                + "opens or a `BLOB` of document bytes. `strict := true` re-raises parse "
+                                + "errors instead of capturing them in the `error` column.\n\n"
+                                + "**Output** — a single row with `mime`, `n_pages`, `lang`, a `meta` "
+                                + "`MAP(VARCHAR, VARCHAR)`, and an `error` column.\n\n"
+                                + "Use it when you only need provenance/structural metadata (author, "
+                                + "created date, content type, page count) and want to avoid the cost of "
+                                + "extracting and transferring full text.",
+                        "# metadata\n\n"
+                                + "Returns a document's metadata without its body text.\n\n"
+                                + "## Usage\n\n"
+                                + "Pass a path or bytes; read individual fields from the `meta` `MAP` "
+                                + "(e.g. `meta['Author']`, `meta['Content-Type']`).\n\n"
+                                + "## Notes\n\n"
+                                + "- Cheaper than `extract` when the body text is not needed.\n"
+                                + "- Per-row error capture in the `error` column unless `strict := true`.\n"
+                                + "- See the returned-columns table below for the exact output shape.",
+                        "metadata, document metadata, mime, page count, language, author, "
+                                + "properties, tika, meta map, content-type",
+                        "MetadataFunction.java"))
+                .withTag("vgi.result_columns_md", COLUMNS_MD)
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
-                        "SELECT mime, n_pages, lang FROM tika.main.metadata('/docs/report.pdf');",
+                        "SELECT mime, n_pages, lang FROM tika.main.metadata('A short document body.'::BLOB);",
                         "Read a document's MIME type, page count, and language without extracting the body text.",
-                        "SELECT meta['Author'] AS author FROM tika.main.metadata('/docs/report.docx');",
-                        "Read a single metadata field (e.g. the author) from the `meta` MAP."));
+                        "SELECT meta['Content-Type'] AS ct FROM tika.main.metadata('Some bytes.'::BLOB);",
+                        "Read a single metadata field from the `meta` MAP."));
     }
 
     /** Markdown table of the columns returned by {@code metadata}. */

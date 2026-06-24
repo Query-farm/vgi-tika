@@ -50,15 +50,42 @@ public final class OcrFunction extends ScalarFn {
                                         + "(NULL if Tesseract is not installed).",
                                 null),
                         new FunctionExample(
-                                "SELECT tika.main.ocr(read_blob('/docs/scan.png'), lang := 'eng+deu');",
-                                "OCR image bytes using multiple Tesseract trained-data "
-                                        + "languages (English + German).",
+                                "SELECT tika.main.ocr('/docs/scan.png'::BLOB);",
+                                "OCR image bytes (a BLOB) instead of a path "
+                                        + "(NULL if Tesseract is not installed).",
                                 null)))
+                .withTags(Meta.objectTags(
+                        "OCR Image or Scanned PDF",
+                        "## ocr\n\n"
+                                + "Run optical character recognition over an image or a scanned PDF using "
+                                + "Apache Tika's Tesseract parser, returning the recognized text.\n\n"
+                                + "**Input** — an `any`-typed document argument (`BLOB` bytes or `VARCHAR` "
+                                + "path) plus an optional `lang` setting. `lang` is a `+`-joined list of "
+                                + "Tesseract trained-data languages, e.g. `'eng'` (default) or `'eng+deu'`.\n\n"
+                                + "**Output** — a `VARCHAR` of the OCR'd text.\n\n"
+                                + "**Important** — OCR requires the system `tesseract` binary on `PATH`. "
+                                + "When it is absent the function returns `NULL` for every row instead of "
+                                + "failing the query, so pipelines stay resilient. Use this for image-only "
+                                + "documents where `extract` returns little or no text.",
+                        "# ocr\n\n"
+                                + "Returns text recognized from an image or scanned PDF as a `VARCHAR`.\n\n"
+                                + "## Usage\n\n"
+                                + "Pass image bytes or a path; optionally set `lang` to a `+`-joined "
+                                + "trained-data list (`'eng+deu'`) to recognize multiple scripts.\n\n"
+                                + "## Notes\n\n"
+                                + "- Requires the `tesseract` system binary; returns `NULL` when it is not "
+                                + "installed rather than raising.\n"
+                                + "- Returns `NULL` for a `NULL` input.\n"
+                                + "- For born-digital documents prefer `extract`; reach for `ocr` when the "
+                                + "content is rasterized.",
+                        "ocr, tesseract, optical character recognition, scanned, image text, "
+                                + "scan, recognize text, image to text",
+                        "OcrFunction.java"))
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
                         "SELECT tika.main.ocr('/docs/scan.png');",
                         "OCR an image file with the default English model (NULL if Tesseract is not installed).",
-                        "SELECT tika.main.ocr(read_blob('/docs/scan.png'), lang := 'eng+deu');",
-                        "OCR image bytes using multiple Tesseract trained-data languages (English + German)."));
+                        "SELECT tika.main.ocr('/docs/scan.png'::BLOB);",
+                        "OCR image bytes (a BLOB) instead of a path (NULL if Tesseract is not installed)."));
     }
 
     @Override protected ArrowType outputType(Schema inputSchema, Arguments args) {
