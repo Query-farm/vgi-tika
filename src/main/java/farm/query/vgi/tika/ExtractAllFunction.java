@@ -113,22 +113,56 @@ public final class ExtractAllFunction implements TableInOutFunction {
                 a.namedString("lang", "eng"), engine);
     }
 
+    /**
+     * Per-exchange state for {@code extract_all}.
+     *
+     * <p><b>HTTP-serializable.</b> Over the HTTP transport the worker is stateless
+     * across exchanges, so the framework gob/CBOR-serializes this state into an
+     * opaque continuation token between exchanges (see
+     * {@code StateSerializer} — it walks the declared fields, skipping {@code
+     * static}/{@code transient}/{@code synthetic}). Every persisted field must
+     * therefore be plain and serializable: we store the output schema as its
+     * serialized {@code byte[]} (an Arrow {@code Schema} is not CBOR-serializable)
+     * plus scalar strings/booleans, and keep the non-serializable {@link
+     * TikaEngine} and the rebuilt Arrow {@link Schema} as {@code transient}
+     * fields rebuilt lazily on the worker side. A no-arg constructor is required
+     * so the deserializer can instantiate it. (The earlier {@code final
+     * TikaEngine}/{@code final Schema} fields made the state unserializable and
+     * the http {@code /init} returned 500 "state serialize failed".)
+     */
     public static final class State extends TableInOutExchangeState {
-        private final Schema outSchema;
-        private final String docColumn;
-        private final String idColumn;
-        private final boolean ocr;
-        private final String lang;
-        private final TikaEngine engine;
+        // Persisted (serializable) fields — public + non-final so the CBOR
+        // (de)serializer reads/writes them.
+        public byte[] outSchemaBytes;
+        public String docColumn;
+        public String idColumn;
+        public boolean ocr;
+        public String lang;
+
+        // Reconstructed on the worker; excluded from serialization.
+        private transient Schema outSchema;
+        private transient TikaEngine engine;
+
+        public State() {}
 
         State(Schema outSchema, String docColumn, String idColumn, boolean ocr, String lang, TikaEngine engine) {
             this.outSchema = outSchema;
+            this.outSchemaBytes = SchemaUtil.serializeSchema(outSchema);
             this.docColumn = docColumn;
             this.idColumn = idColumn;
             this.ocr = ocr;
             this.lang = lang;
             this.engine = engine;
         }
+
+        private Schema outSchema() {
+            if (outSchema == null) {
+                outSchema = SchemaUtil.deserializeSchema(outSchemaBytes);
+            }
+            return outSchema;
+        }
+
+        private TikaEngine engine() { return engine != null ? engine : TikaEngine.shared(); }
 
         @Override public void onInputBatch(AnnotatedBatch batch, OutputCollector out, CallContext ctx) {
             VectorSchemaRoot in = batch.root();
@@ -139,7 +173,7 @@ public final class ExtractAllFunction implements TableInOutFunction {
             boolean hasId = idColumn != null && !idColumn.isEmpty();
             FieldVector idVec = hasId ? in.getVector(idColumn) : null;
 
-            VectorSchemaRoot root = VectorSchemaRoot.create(outSchema, Allocators.root());
+            VectorSchemaRoot root = VectorSchemaRoot.create(outSchema(), Allocators.root());
             root.allocateNew();
             MapVector metaVec = (MapVector) root.getVector("meta");
 
@@ -150,7 +184,7 @@ public final class ExtractAllFunction implements TableInOutFunction {
                 DocInput input = docInputAt(docVec, i);
                 TikaEngine.ExtractResult r = input == null
                         ? TikaEngine.ExtractResult.failure("missing document column value")
-                        : engine.extract(input.bytes(), input.path(), ocr, lang);
+                        : engine().extract(input.bytes(), input.path(), ocr, lang);
 
                 TikaSchemas.setUtf8(root, "content", i, r.content());
                 TikaSchemas.setUtf8(root, "mime", i, r.mime());

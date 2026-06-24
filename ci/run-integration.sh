@@ -60,6 +60,14 @@ for f in "$REPO"/test/sql/*.test; do
     > "$STAGE/test/sql/$(basename "$f")"
 done
 
+# The full suite runs on ALL THREE transports — no per-transport gate. The
+# table-in-out `extract_all` was made HTTP-safe by giving its per-exchange state
+# only serializable fields (the non-serializable TikaEngine + Arrow Schema are
+# transient + rebuilt; the schema is persisted as bytes): over http the framework
+# CBOR-serializes the state into the continuation token between exchanges, so a
+# non-serializable field previously made `/init` return 500 "state serialize
+# failed". See ExtractAllFunction.State and ci/README.md.
+
 # The .test files reference committed fixtures under test/sql/data via relative
 # paths; stage them alongside the preprocessed tests so the runner (which cd's
 # into $STAGE) and the out-of-band http/unix worker (started with cwd=$STAGE)

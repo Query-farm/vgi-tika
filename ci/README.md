@@ -59,11 +59,36 @@ resolves against its own cwd. (For `subprocess`, DuckDB spawns the worker with
 that same cwd.) In all three cases the committed fixtures are staged into the
 stage dir, so fixture resolution is identical across transports.
 
-The suite itself is transport-agnostic — the table functions (`extract`,
-`metadata`) and the table-in-out (`extract_all`) emit their whole result in one
-`produceTick`/`onInputBatch` and then `finish()` in the same tick, so the worker
-never has to resume a producer mid-stream across an HTTP continuation boundary.
-No test needs a per-transport gate; all three legs run the full suite.
+The suite is transport-agnostic and **runs in full on all three transports** —
+no per-transport gate. The table functions (`extract`, `metadata`) emit their
+whole result in one `produceTick` then `finish()`, and the scalars are plain
+request/response.
+
+### HTTP-serializable table-in-out state (the one real http fix)
+
+The `extract_all` **table-in-out** initially failed only over **http** with a
+masked `HTTP 500` at `/init`. Over http the worker is stateless across exchanges,
+so the framework CBOR-serializes each function's per-exchange state into an opaque
+continuation token between exchanges (`StateSerializer` walks the declared fields,
+skipping `static`/`transient`/`synthetic`). The original
+`ExtractAllFunction.State` held a `final TikaEngine` and a `final` Arrow `Schema`
+— neither is CBOR-serializable — so serializing the state threw and the worker
+returned 500 `state serialize failed: …ExtractAllFunction$State`. The DuckDB
+extension surfaced that as `HTTP 500 for HTTP POST to '…/init'`, whose "HTTP" the
+sqllogictest runner then *silently skipped* (see the guard below), which is why
+it masqueraded as a partial-green http leg.
+
+The fix is the standard "externalize the state" pattern: `State` now persists only
+serializable fields — the output schema as a `byte[]` (via `SchemaUtil`), plus the
+scalar `docColumn`/`idColumn`/`ocr`/`lang` — and keeps the non-serializable
+`TikaEngine` and the rebuilt Arrow `Schema` as `transient` fields rebuilt lazily
+on the worker, with a no-arg constructor for the deserializer. (The plain
+`extract`/`metadata` producer state was already http-safe — its `TikaEngine` was
+already `transient`.) With that, the **full suite — including the `meta`
+`MAP(VARCHAR,VARCHAR)` column and the `extract_all` table-in-out — runs green over
+subprocess, http, and unix.** Arrow Map columns and table-in-out streaming both
+traverse the vgi HTTP transport fine; the only requirement is serializable
+exchange state.
 
 ### httpfs is required for the HTTP transport
 
