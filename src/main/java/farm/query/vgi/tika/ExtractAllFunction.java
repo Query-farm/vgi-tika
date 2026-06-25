@@ -98,9 +98,9 @@ public final class ExtractAllFunction implements TableInOutFunction {
                                 + "- Accepts a `VARCHAR` path column or a `BLOB` bytes column.\n"
                                 + "- Per-row error capture (NULL `content` + `error`).\n"
                                 + "- See the returned-columns table below for the exact output shape.",
-                        "extract all, bulk extract, batch, column of documents, table function, "
-                                + "passthrough id, corpus, tika, paths, blobs",
-                        "ExtractAllFunction.java"))
+                        "extract all", "bulk extract", "batch", "column of documents",
+                        "table function", "passthrough id", "corpus", "tika", "paths",
+                        "blobs"))
                 .withTag("vgi.result_columns_md", COLUMNS_MD)
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
                         "SELECT id, content, mime FROM tika.main.extract_all("
@@ -134,11 +134,27 @@ public final class ExtractAllFunction implements TableInOutFunction {
 
     @Override public List<ArgSpec> argumentSpecs() {
         return List.of(
-                ArgSpec.table("input", 0),
-                ArgSpec.named("doc_column", Schemas.UTF8, ""),
-                ArgSpec.named("id", Schemas.UTF8, ""),
-                ArgSpec.named("ocr", Schemas.BOOL, "false"),
-                ArgSpec.named("lang", Schemas.UTF8, "eng"));
+                Meta.tableArg("input", 0,
+                        "The input relation (a subquery) supplying the documents to extract. "
+                                + "One of its columns holds the documents as either filesystem "
+                                + "paths or inline bytes (see `doc_column`); one extract row is "
+                                + "produced per input row."),
+                Meta.namedArg("doc_column", Schemas.UTF8, "",
+                        "Name of the input column holding the documents (filesystem paths or "
+                                + "inline bytes). When empty (default), the first column that is "
+                                + "not the `id` column is used."),
+                Meta.namedArg("id", Schemas.UTF8, "",
+                        "Name of an input column to pass through: it is excluded from parsing "
+                                + "and copied verbatim onto every output row so results can be "
+                                + "joined back to the source. When empty (default), no passthrough "
+                                + "column is emitted."),
+                Meta.namedArg("ocr", Schemas.BOOL, "false",
+                        "When true, force OCR of each document (images/scanned PDFs) instead of "
+                                + "born-digital text extraction. Defaults to false."),
+                Meta.namedArg("lang", Schemas.UTF8, "eng",
+                        "Tesseract OCR language(s) to use when OCR runs, as a `+`-joined "
+                                + "trained-data list (e.g. `eng` or `eng+deu`). Defaults to "
+                                + "English."));
     }
 
     /** Output schema = optional id passthrough column + the extract columns. */

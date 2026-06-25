@@ -78,9 +78,8 @@ public final class OcrFunction extends ScalarFn {
                                 + "- Returns `NULL` for a `NULL` input.\n"
                                 + "- For born-digital documents prefer `extract`; reach for `ocr` when the "
                                 + "content is rasterized.",
-                        "ocr, tesseract, optical character recognition, scanned, image text, "
-                                + "scan, recognize text, image to text",
-                        "OcrFunction.java"))
+                        "ocr", "tesseract", "optical character recognition", "scanned",
+                        "image text", "scan", "recognize text", "image to text"))
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
                         "SELECT tika.main.ocr('/docs/scan.png');",
                         "OCR an image file with the default English model (NULL if Tesseract is not installed).",
@@ -92,7 +91,11 @@ public final class OcrFunction extends ScalarFn {
         return Schemas.UTF8;
     }
 
-    public void compute(@Vector(value = "doc", any = true) FieldVector in,
+    public void compute(@Vector(value = "doc", any = true,
+                                doc = "The image or scanned PDF to OCR. Pass either the raw bytes "
+                                        + "inline or a filesystem path the worker opens; the "
+                                        + "worker dispatches on the runtime value.")
+                        FieldVector in,
                         @Setting(default_ = "eng") String lang,
                         VarCharVector out) {
         String ocrLang = (lang == null || lang.isBlank()) ? "eng" : lang;

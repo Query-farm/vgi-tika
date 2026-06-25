@@ -41,7 +41,7 @@ dependencies {
     // as farm.query:vgi; the old local SNAPSHOT artifact was named vgi-core) and
     // pulls in farm.query:vgirpc transitively; vgirpc is declared explicitly
     // because the code imports farm.query.vgirpc.* directly. oauth is not used.
-    implementation("farm.query:vgi:0.5.0")
+    implementation("farm.query:vgi:0.6.0")
     implementation("farm.query:vgirpc:0.10.2")
 
     // Apache Tika — Apache-2.0. tika-core is the streaming Parser/Metadata API;

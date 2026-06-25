@@ -71,9 +71,8 @@ public final class MetadataFunction implements TableFunction {
                                 + "- Cheaper than `extract` when the body text is not needed.\n"
                                 + "- Per-row error capture in the `error` column unless `strict := true`.\n"
                                 + "- See the returned-columns table below for the exact output shape.",
-                        "metadata, document metadata, mime, page count, language, author, "
-                                + "properties, tika, meta map, content-type",
-                        "MetadataFunction.java"))
+                        "metadata", "document metadata", "mime", "page count", "language",
+                        "author", "properties", "tika", "meta map", "content-type"))
                 .withTag("vgi.result_columns_md", COLUMNS_MD)
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
                         "SELECT mime, n_pages, lang FROM tika.main.metadata('A short document body.'::BLOB);",
@@ -95,8 +94,14 @@ public final class MetadataFunction implements TableFunction {
     @Override public List<ArgSpec> argumentSpecs() {
         // Polymorphic doc arg (VARCHAR path or BLOB bytes) — see ExtractFunction.
         return List.of(
-                ArgSpec.any("doc", 0, List.of()),
-                ArgSpec.named("strict", Schemas.BOOL, "false"));
+                Meta.anyArg("doc", 0,
+                        "The document whose metadata to read. Pass either a filesystem path "
+                                + "(the worker opens the file) or the raw document bytes inline; "
+                                + "the worker dispatches on the runtime value."),
+                Meta.namedArg("strict", Schemas.BOOL, "false",
+                        "When true, re-raise any parse error and fail the query instead of "
+                                + "capturing it in the `error` column (NULL metadata). Defaults to "
+                                + "false (errors are captured per-row)."));
     }
 
     @Override public BindResponse onBind(TableBindParams p) {

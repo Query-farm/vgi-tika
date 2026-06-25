@@ -1,6 +1,11 @@
 package farm.query.vgi.tika;
 
+import farm.query.vgi.function.ArgSpec;
+import farm.query.vgi.function.TypeBoundPredicate;
+import org.apache.arrow.vector.types.pojo.ArrowType;
+
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -16,40 +21,100 @@ import java.util.Map;
  *       audience</li>
  *   <li>{@code vgi.doc_md} (VGI113) — a Markdown narrative for human docs
  *       (distinct content from {@code vgi.doc_llm})</li>
- *   <li>{@code vgi.keywords} (VGI126) — comma-separated search terms/synonyms</li>
- *   <li>{@code vgi.source_url} (VGI128) — link to the implementing source file</li>
+ *   <li>{@code vgi.keywords} (VGI126/VGI138) — a JSON array of search-term/synonym
+ *       strings</li>
  * </ul>
+ *
+ * <p>Per-object {@code vgi.source_url} is intentionally <b>not</b> emitted: the
+ * linter (VGI139) wants {@code source_url} only on the catalog object, so the
+ * single repo-level source link lives on the catalog (see {@code Main}).
  */
 public final class Meta {
 
     private Meta() {}
 
-    /** Base GitHub blob URL for source files in this repo (pinned to {@code main}). */
-    private static final String SOURCE_BASE =
-            "https://github.com/Query-farm/vgi-tika/blob/main/src/main/java/farm/query/vgi/tika";
+    // Doc-carrying ArgSpec builders (VGI312). The stock ArgSpec.any/named/table
+    // factories leave the per-argument doc empty; these mirror those factories
+    // exactly (same flag/default semantics) but populate the canonical record's
+    // `doc` component so every argument's description serializes to the linter.
 
-    /** Build the implementation {@code vgi.source_url} for a file under the tika package. */
-    public static String sourceUrl(String fileName) {
-        return SOURCE_BASE + "/" + fileName;
+    /** An {@code any}-typed positional argument with a per-argument doc (VGI312). */
+    public static ArgSpec anyArg(String name, int position, String doc) {
+        return new ArgSpec(
+                name, position, new ArrowType.Null(), doc,
+                /*isConst*/ false, /*hasDefault*/ false, /*defaultValue*/ "",
+                List.<TypeBoundPredicate>of(),
+                /*varargs*/ false, /*anyType*/ true, /*tableInput*/ false);
+    }
+
+    /** A named (defaulted) argument with a per-argument doc (VGI312). */
+    public static ArgSpec namedArg(String name, ArrowType type, String defaultValue, String doc) {
+        return new ArgSpec(
+                name, -1, type, doc,
+                /*isConst*/ true, /*hasDefault*/ true, defaultValue,
+                List.<TypeBoundPredicate>of(),
+                /*varargs*/ false, /*anyType*/ false, /*tableInput*/ false);
+    }
+
+    /** A table-input argument with a per-argument doc (VGI312). */
+    public static ArgSpec tableArg(String name, int position, String doc) {
+        return new ArgSpec(
+                name, position, new ArrowType.Null(), doc,
+                /*isConst*/ false, /*hasDefault*/ false, /*defaultValue*/ "",
+                List.<TypeBoundPredicate>of(),
+                /*varargs*/ false, /*anyType*/ false, /*tableInput*/ true);
     }
 
     /**
-     * Build the five standard per-object discovery/description tags.
+     * Build the four standard per-object discovery/description tags.
      *
      * @param title    human display name (VGI124/VGI125)
      * @param docLlm   Markdown narrative aimed at LLMs/agents (VGI112)
      * @param docMd    Markdown narrative for human docs (VGI113); must differ from {@code docLlm}
-     * @param keywords comma-separated search terms (VGI126)
-     * @param fileName implementing source file, e.g. {@code "ExtractFunction.java"} (VGI128)
+     * @param keywords search terms/synonyms, emitted as a JSON array (VGI126/VGI138)
      */
     public static Map<String, String> objectTags(
-            String title, String docLlm, String docMd, String keywords, String fileName) {
+            String title, String docLlm, String docMd, String... keywords) {
         Map<String, String> tags = new LinkedHashMap<>();
         tags.put("vgi.title", title);
         tags.put("vgi.doc_llm", docLlm);
         tags.put("vgi.doc_md", docMd);
-        tags.put("vgi.keywords", keywords);
-        tags.put("vgi.source_url", sourceUrl(fileName));
+        tags.put("vgi.keywords", keywordsJson(keywords));
+        // Per-object vgi.source_url is intentionally omitted (VGI139): the
+        // source link lives only on the catalog object.
         return tags;
+    }
+
+    /** Render keyword terms as a JSON array of strings, e.g. {@code ["a","b"]} (VGI138). */
+    public static String keywordsJson(String... keywords) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < keywords.length; i++) {
+            if (i > 0) sb.append(',');
+            sb.append(jsonString(keywords[i]));
+        }
+        return sb.append(']').toString();
+    }
+
+    /** Minimal JSON string escaper for the keywords array. */
+    private static String jsonString(String s) {
+        StringBuilder sb = new StringBuilder("\"");
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            switch (c) {
+                case '"' -> sb.append("\\\"");
+                case '\\' -> sb.append("\\\\");
+                case '\n' -> sb.append("\\n");
+                case '\r' -> sb.append("\\r");
+                case '\t' -> sb.append("\\t");
+                default -> {
+                    if (c < 0x20) {
+                        sb.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        sb.append(c);
+                    }
+                }
+            }
+        }
+        return sb.append('"').toString();
     }
 }

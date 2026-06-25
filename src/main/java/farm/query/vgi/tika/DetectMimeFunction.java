@@ -74,9 +74,8 @@ public final class DetectMimeFunction extends ScalarFn {
                                 + "- Returns `NULL` for a `NULL` input.\n"
                                 + "- Office formats are correctly disambiguated by inspecting the OOXML/ODF "
                                 + "container, not just the ZIP signature.",
-                        "mime, media type, content type, detect mime, file type, magic bytes, "
-                                + "sniff, content-type, tika detect",
-                        "DetectMimeFunction.java"))
+                        "mime", "media type", "content type", "detect mime", "file type",
+                        "magic bytes", "sniff", "content-type", "tika detect"))
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
                         "SELECT tika.main.detect_mime('Hello, plain text body.'::BLOB);",
                         "Detect the MIME type of inline document bytes (returns 'text/plain').",
@@ -89,7 +88,12 @@ public final class DetectMimeFunction extends ScalarFn {
         return Schemas.UTF8;
     }
 
-    public void compute(@Vector(value = "doc", any = true) FieldVector in, VarCharVector out) {
+    public void compute(
+            @Vector(value = "doc", any = true,
+                    doc = "The document to sniff. Pass either the raw document bytes inline "
+                            + "(detected from its magic bytes) or a filesystem path the worker "
+                            + "opens; the worker dispatches on the runtime value.")
+            FieldVector in, VarCharVector out) {
         int n = in.getValueCount();
         for (int i = 0; i < n; i++) {
             if (in.isNull(i)) { out.setNull(i); continue; }

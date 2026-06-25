@@ -72,9 +72,8 @@ public final class DetectLangFunction extends ScalarFn {
                                 + "- Backed by the Optimaize models bundled with Tika; accuracy improves "
                                 + "with longer text.\n"
                                 + "- Use `detect_lang_conf` for the matching confidence score.",
-                        "language, detect language, language detection, iso-639, locale, "
-                                + "language code, optimaize, nlp",
-                        "DetectLangFunction.java"))
+                        "language", "detect language", "language detection", "iso-639",
+                        "locale", "language code", "optimaize", "nlp"))
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
                         "SELECT tika.main.detect_lang('The quick brown fox jumps over the lazy dog.');",
                         "Detect the ISO-639 language code of a piece of text (returns 'en' here).",
@@ -83,7 +82,12 @@ public final class DetectLangFunction extends ScalarFn {
                         "Detect the language of an extracted document's body text."));
     }
 
-    public void compute(@Vector("text") VarCharVector in, VarCharVector out) {
+    public void compute(
+            @Vector(value = "text",
+                    doc = "The text whose dominant natural language to detect, typically the "
+                            + "`content` column produced by `extract`. NULL, blank, or "
+                            + "low-confidence input yields NULL.")
+            VarCharVector in, VarCharVector out) {
         LanguageDetector detector;
         try {
             detector = DETECTOR.get();

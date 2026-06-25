@@ -69,8 +69,10 @@ public final class Main {
         tags.put("vgi.title", "Apache Tika Document Extraction");
         tags.put(
                 "vgi.keywords",
-                "tika, document extraction, text extraction, metadata, ocr, mime, language "
-                        + "detection, pdf, docx, pptx, xlsx, html, email, rtf, odf, tesseract");
+                Meta.keywordsJson(
+                        "tika", "document extraction", "text extraction", "metadata", "ocr",
+                        "mime", "language detection", "pdf", "docx", "pptx", "xlsx", "html",
+                        "email", "rtf", "odf", "tesseract"));
         tags.put(
                 "vgi.doc_llm",
                 "Extract plain text, document metadata, language, page counts, and OCR from "
@@ -105,15 +107,16 @@ public final class Main {
         tags.put("vgi.title", "Tika — main schema");
         tags.put(
                 "vgi.keywords",
-                "tika, extract, metadata, extract_all, detect_mime, detect_lang, "
-                        + "detect_lang_conf, ocr, document, text, language, mime");
+                Meta.keywordsJson(
+                        "tika", "extract", "metadata", "extract_all", "detect_mime",
+                        "detect_lang", "detect_lang_conf", "ocr", "document", "text",
+                        "language", "mime"));
         // VGI123 classifying tags — BARE keys (not vgi.-namespaced) for faceting.
         tags.put("domain", "documents");
         tags.put("category", "extraction");
         tags.put("topic", "text-metadata-ocr");
-        tags.put(
-                "vgi.source_url",
-                "https://github.com/Query-farm/vgi-tika/blob/main/src/main/java/farm/query/vgi/tika/Main.java");
+        // Per-object vgi.source_url is omitted here (VGI139): source_url lives
+        // only on the catalog object (set via Worker.builder().sourceUrl(...)).
         tags.put(
                 "vgi.doc_llm",
                 "Apache Tika document-extraction functions: extract text/metadata/language/page "

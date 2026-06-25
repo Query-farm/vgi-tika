@@ -80,9 +80,9 @@ public final class DetectLangConfFunction extends ScalarFn {
                                 + "- Returns `NULL` for `NULL`, blank, or undetected input.\n"
                                 + "- The score is the model's raw probability, not Tika's coarse enum.\n"
                                 + "- Longer text yields more reliable confidence.",
-                        "language confidence, language score, detect language, confidence, "
-                                + "probability, iso-639, language detection, threshold",
-                        "DetectLangConfFunction.java"))
+                        "language confidence", "language score", "detect language",
+                        "confidence", "probability", "iso-639", "language detection",
+                        "threshold"))
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
                         "SELECT tika.main.detect_lang_conf('The quick brown fox jumps over the lazy dog.');",
                         "Confidence (0.0-1.0) of the top detected language for a piece of text.",
@@ -91,7 +91,12 @@ public final class DetectLangConfFunction extends ScalarFn {
                         "Report the detected language and its confidence for an extracted document body."));
     }
 
-    public void compute(@Vector("text") VarCharVector in, Float8Vector out) {
+    public void compute(
+            @Vector(value = "text",
+                    doc = "The text to score, typically an extracted document body. Yields the "
+                            + "detector's confidence (0.0-1.0) in the top detected language; "
+                            + "NULL, blank, or undetected input yields NULL.")
+            VarCharVector in, Float8Vector out) {
         LanguageDetector detector;
         try {
             detector = DETECTOR.get();

@@ -93,9 +93,9 @@ public final class ExtractFunction implements TableFunction {
                                 + "- The `meta` column is a `MAP(VARCHAR, VARCHAR)` of Tika's full "
                                 + "metadata bag.\n"
                                 + "- See the returned-columns table below for the exact output shape.",
-                        "extract, text extraction, document text, pdf, docx, pptx, xlsx, html, "
-                                + "tika, parse document, content, metadata, by_page",
-                        "ExtractFunction.java"))
+                        "extract", "text extraction", "document text", "pdf", "docx", "pptx",
+                        "xlsx", "html", "tika", "parse document", "content", "metadata",
+                        "by_page"))
                 .withTag("vgi.result_columns_md", COLUMNS_MD)
                 .withTag("vgi.executable_examples", EXECUTABLE_EXAMPLES)
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
@@ -146,11 +146,26 @@ public final class ExtractFunction implements TableFunction {
         // VARCHAR path (the worker opens the file) and a BLOB/BINARY of bytes.
         // The worker disambiguates on the runtime value/type via DocInput.
         return List.of(
-                ArgSpec.any("doc", 0, List.of()),
-                ArgSpec.named("by_page", Schemas.BOOL, "false"),
-                ArgSpec.named("lang", Schemas.UTF8, "eng"),
-                ArgSpec.named("ocr", Schemas.BOOL, "false"),
-                ArgSpec.named("strict", Schemas.BOOL, "false"));
+                Meta.anyArg("doc", 0,
+                        "The document to extract. Pass either a filesystem path (the worker "
+                                + "opens and reads the file) or the raw document bytes inline; "
+                                + "the worker dispatches on the runtime value."),
+                Meta.namedArg("by_page", Schemas.BOOL, "false",
+                        "When true, emit one row per page with a leading 1-based `page` column "
+                                + "(real per-page splitting for PDFs; other formats fall back to a "
+                                + "single page row). When false (default), emit one row for the "
+                                + "whole document."),
+                Meta.namedArg("lang", Schemas.UTF8, "eng",
+                        "Tesseract OCR language(s) to use when OCR runs, as a `+`-joined "
+                                + "trained-data list (e.g. `eng` or `eng+deu`). Only consulted when "
+                                + "OCR is triggered; defaults to English."),
+                Meta.namedArg("ocr", Schemas.BOOL, "false",
+                        "When true, force OCR of the document (images/scanned PDFs) instead of "
+                                + "relying on born-digital text extraction. Defaults to false."),
+                Meta.namedArg("strict", Schemas.BOOL, "false",
+                        "When true, re-raise any parse error and fail the query instead of "
+                                + "capturing it per-row (NULL content + populated `error` column). "
+                                + "Defaults to false (errors are captured)."));
     }
 
     private static boolean byPage(Arguments a) { return a.namedBool("by_page", false); }
