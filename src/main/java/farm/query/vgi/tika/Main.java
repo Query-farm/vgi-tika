@@ -86,6 +86,7 @@ public final class Main {
         tags.put(
                 "vgi.doc_md",
                 "# Apache Tika Document & OCR Text Extraction in SQL\n\n"
+                        + "![Apache Tika logo](https://upload.wikimedia.org/wikipedia/commons/7/74/Apache_Tika_Logo.svg)\n\n"
                         + "Extract plain text, document metadata, language, page counts, and OCR "
                         + "directly in DuckDB SQL from PDF, Word, Excel, PowerPoint, HTML, email, "
                         + "and image files — powered by [Apache Tika](https://tika.apache.org/) "
