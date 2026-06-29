@@ -85,12 +85,55 @@ public final class Main {
                         + "for media-type sniffing, language detection, and Tesseract OCR.");
         tags.put(
                 "vgi.doc_md",
-                "# tika\n\n"
-                        + "Document text, metadata, language, and OCR extraction over Apache "
-                        + "Arrow, powered by [Apache Tika](https://tika.apache.org/).\n\n"
-                        + "Table functions: `extract`, `metadata`, `extract_all`. "
-                        + "Scalars: `detect_mime`, `detect_lang`, `detect_lang_conf`, `ocr`.\n\n"
-                        + "Inputs are either a VARCHAR file path or a BLOB of document bytes.");
+                "# Apache Tika Document & OCR Text Extraction in SQL\n\n"
+                        + "Extract plain text, document metadata, language, page counts, and OCR "
+                        + "directly in DuckDB SQL from PDF, Word, Excel, PowerPoint, HTML, email, "
+                        + "and image files — powered by [Apache Tika](https://tika.apache.org/) "
+                        + "([source](https://github.com/apache/tika)).\n\n"
+
+                        + "## What it does\n\n"
+                        + "The **tika** extension turns DuckDB into a document-parsing engine: point "
+                        + "it at a file path or a `BLOB` of document bytes and get back searchable "
+                        + "plain text plus a rich metadata map, all without leaving SQL. It is built "
+                        + "for data engineers, analysts, and AI/RAG pipelines that need to mine "
+                        + "unstructured documents — contracts, invoices, reports, slide decks, "
+                        + "spreadsheets, web pages, and scanned images — and join the extracted "
+                        + "content against the rest of their warehouse. Because it runs as a VGI "
+                        + "worker over Apache Arrow, extraction happens close to your data with no "
+                        + "external service calls and no manual file shuffling.\n\n"
+
+                        + "## How it works\n\n"
+                        + "Every function is backed by [Apache Tika](https://tika.apache.org/), the "
+                        + "battle-tested Apache content-detection and analysis toolkit that ships "
+                        + "more than a thousand parsers (PDFBox for PDF, Apache POI for Microsoft "
+                        + "Office, and many more). Tika auto-detects each document's media type and "
+                        + "dispatches it to the right parser, so a single call handles dozens of "
+                        + "formats. Scanned PDFs and images are run through "
+                        + "[Tesseract OCR](https://github.com/tesseract-ocr/tesseract) when the "
+                        + "Tesseract binary is available; when it is not, OCR results return `NULL` "
+                        + "rather than failing the query. See the official "
+                        + "[Apache Tika documentation](https://cwiki.apache.org/confluence/display/TIKA) "
+                        + "for the full parser and metadata catalog.\n\n"
+
+                        + "## SQL use cases & functions\n\n"
+                        + "Inputs are always either a `VARCHAR` file path (the worker opens it) or a "
+                        + "`BLOB` of the raw document bytes. The function surface is:\n\n"
+                        + "- **`extract`** — table function returning the full text `content`, a "
+                        + "metadata map, and page counts for one document; supports per-page "
+                        + "splitting via `by_page`.\n"
+                        + "- **`metadata`** — table function returning the metadata map without the "
+                        + "body text, for fast media-type and property inspection.\n"
+                        + "- **`extract_all`** — table-in/table-out function that extracts an entire "
+                        + "column of documents at once with an id passthrough, ideal for batch "
+                        + "processing a table of paths or blobs.\n"
+                        + "- **`detect_mime`** — scalar returning a document's MIME / media type.\n"
+                        + "- **`detect_lang`** / **`detect_lang_conf`** — scalars returning the "
+                        + "detected language of a text and the detection confidence.\n"
+                        + "- **`ocr`** — scalar running Tesseract OCR over an image or scanned PDF.\n\n"
+                        + "Typical queries include `SELECT content FROM tika.extract('/docs/report.pdf')`, "
+                        + "joining `extract_all` output against a `documents` table for full-text "
+                        + "indexing, or filtering on `detect_mime` and `detect_lang` to route "
+                        + "documents through a downstream pipeline.");
         tags.put("vgi.author", "Query.Farm");
         tags.put("vgi.copyright", "Copyright 2026 Query Farm LLC - https://query.farm");
         tags.put("vgi.license", "MIT");
