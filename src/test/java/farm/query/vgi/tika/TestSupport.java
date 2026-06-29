@@ -38,7 +38,7 @@ public final class TestSupport {
                 new byte[0], null, null, null,
                 // vgi 0.4.0 added the AT-syntax (atUnit, atValue) and storage
                 // record components — unused by this in-process test driver.
-                null, null, null);
+                null, null, null, null);
 
         TableProducerState state = fn.createProducer(init);
 
