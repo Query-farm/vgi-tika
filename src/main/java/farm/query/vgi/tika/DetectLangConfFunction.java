@@ -43,6 +43,7 @@ public final class DetectLangConfFunction extends ScalarFn {
     @Override public FunctionMetadata metadata() {
         return FunctionMetadata.describe(description())
                 .withCategories("text", "detection", "tika")
+                .withTag("vgi.category", "Content Detection")
                 .withExamples(List.of(
                         new FunctionExample(
                                 "SELECT tika.main.detect_lang_conf('The quick brown fox jumps over the lazy dog.');",

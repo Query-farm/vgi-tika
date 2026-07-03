@@ -63,6 +63,45 @@ public final class Main {
         return sb.append('"').toString();
     }
 
+    /**
+     * Fixed agent-suitability suite (VGI152/VGI920). A JSON array of analyst tasks
+     * graded by {@code vgi-lint simulate}: only {@code prompt} is shown to the
+     * simulated analyst; {@code reference_sql} is the hidden canonical solution.
+     * Every reference is self-contained (inline {@code BLOB} literals) and
+     * deterministic; {@code ignore_column_names} makes grading value-based.
+     */
+    static final String AGENT_TEST_TASKS = """
+            [
+              {"name": "detect_document_mime",
+               "prompt": "I have a document whose raw bytes are the text 'Hello, this is a plain-text document body.'. What media (MIME) type does this worker detect for it? Return a single row with one column named mime.",
+               "reference_sql": "SELECT tika.main.detect_mime('Hello, this is a plain-text document body.'::BLOB) AS mime",
+               "ignore_column_names": true},
+              {"name": "detect_text_language",
+               "prompt": "Detect the natural language of this sentence: 'The quick brown fox jumps over the lazy dog while the sun sets slowly behind the distant hills.'. Return a single row with one column named lang holding the detected language code.",
+               "reference_sql": "SELECT tika.main.detect_lang('The quick brown fox jumps over the lazy dog while the sun sets slowly behind the distant hills.') AS lang",
+               "ignore_column_names": true},
+              {"name": "language_confidence_score",
+               "prompt": "For the sentence 'The quick brown fox jumps over the lazy dog while the sun sets slowly behind the distant hills.', how confident is the language detector in its top guess? Return the raw confidence score, unrounded, as a single row with one column named confidence.",
+               "reference_sql": "SELECT tika.main.detect_lang_conf('The quick brown fox jumps over the lazy dog while the sun sets slowly behind the distant hills.') AS confidence",
+               "ignore_column_names": true},
+              {"name": "extract_document_media_type",
+               "prompt": "Using the single-document extraction, return the detected media type of a document whose raw bytes are 'A short quarterly report body.'. Return a single row with one column named mime.",
+               "reference_sql": "SELECT mime FROM tika.main.extract('A short quarterly report body.'::BLOB)",
+               "ignore_column_names": true},
+              {"name": "metadata_media_type",
+               "prompt": "Using the metadata-only function (no body text), return the detected media type of a document whose raw bytes are 'A brief internal memo.'. Return a single row with one column named mime.",
+               "reference_sql": "SELECT mime FROM tika.main.metadata('A brief internal memo.'::BLOB)",
+               "ignore_column_names": true},
+              {"name": "batch_extract_media_types",
+               "prompt": "I have a small table of two documents: id 1 with raw bytes 'alpha document body' and id 2 with raw bytes 'beta document body'. Process them all at once and return each document's id together with its detected media type, ordered by id ascending. Return two columns named id and mime.",
+               "reference_sql": "SELECT id, mime FROM tika.main.extract_all((SELECT * FROM (VALUES (1, 'alpha document body'::BLOB), (2, 'beta document body'::BLOB)) AS t(id, body)), id := 'id', doc_column := 'body') ORDER BY id",
+               "ignore_column_names": true},
+              {"name": "ocr_when_no_text_layer",
+               "prompt": "Run optical character recognition over a tiny input whose raw bytes are 'x' (there is no real image, so OCR yields no recognizable characters). Return a single row with one column named text holding whatever OCR produces.",
+               "reference_sql": "SELECT tika.main.ocr('x'::BLOB) AS text",
+               "ignore_column_names": true}
+            ]""";
+
     /** Catalog-level tags surfaced to DuckDB and the vgi-lint metadata linter. */
     static Map<String, String> catalogTags() {
         Map<String, String> tags = new LinkedHashMap<>();
@@ -75,14 +114,22 @@ public final class Main {
                         "email", "rtf", "odf", "tesseract"));
         tags.put(
                 "vgi.doc_llm",
-                "Extract plain text, document metadata, language, page counts, and OCR from "
-                        + "binary documents (PDF, DOCX, PPTX, XLSX, HTML, EML/MSG, RTF, ODF, and "
-                        + "images) directly in SQL via Apache Tika. Pass a file path (the worker "
-                        + "opens it) or a BLOB of the document bytes. Use the `extract` / "
-                        + "`metadata` table functions for a single document, `extract_all` to "
-                        + "process a whole column of documents with an id passthrough, and the "
-                        + "`detect_mime`, `detect_lang`, `detect_lang_conf`, and `ocr` scalars "
-                        + "for media-type sniffing, language detection, and Tesseract OCR.");
+                "Extract searchable plain text, rich document metadata, detected language, page "
+                        + "counts, and OCR output from binary documents — PDF, Word, PowerPoint, "
+                        + "Excel, HTML, email, RTF, OpenDocument, and image formats — directly "
+                        + "inside DuckDB SQL, powered by Apache Tika. Each call takes either a "
+                        + "filesystem path (the worker opens and reads the file) or a BLOB of the "
+                        + "raw document bytes; the media type is auto-detected, so one call handles "
+                        + "dozens of formats. Reach for this worker when you need to mine "
+                        + "unstructured documents from SQL — full-text and vector indexing for "
+                        + "search or RAG, media-type routing, language filtering, or joining "
+                        + "extracted content and metadata against the rest of your warehouse — "
+                        + "without standing up an external extraction service. Scanned pages and "
+                        + "images are run through Tesseract OCR when the binary is available, and "
+                        + "parse failures surface per row rather than aborting the query. The "
+                        + "worker's functions are grouped into navigable categories for text and "
+                        + "metadata extraction, content detection, and optical character "
+                        + "recognition; list the schema to discover them.");
         tags.put(
                 "vgi.doc_md",
                 "# Apache Tika Document & OCR Text Extraction in SQL\n\n"
@@ -116,25 +163,28 @@ public final class Main {
                         + "[Apache Tika documentation](https://cwiki.apache.org/confluence/display/TIKA) "
                         + "for the full parser and metadata catalog.\n\n"
 
-                        + "## SQL use cases & functions\n\n"
-                        + "Inputs are always either a `VARCHAR` file path (the worker opens it) or a "
-                        + "`BLOB` of the raw document bytes. The function surface is:\n\n"
-                        + "- **`extract`** — table function returning the full text `content`, a "
-                        + "metadata map, and page counts for one document; supports per-page "
-                        + "splitting via `by_page`.\n"
-                        + "- **`metadata`** — table function returning the metadata map without the "
-                        + "body text, for fast media-type and property inspection.\n"
-                        + "- **`extract_all`** — table-in/table-out function that extracts an entire "
-                        + "column of documents at once with an id passthrough, ideal for batch "
-                        + "processing a table of paths or blobs.\n"
-                        + "- **`detect_mime`** — scalar returning a document's MIME / media type.\n"
-                        + "- **`detect_lang`** / **`detect_lang_conf`** — scalars returning the "
-                        + "detected language of a text and the detection confidence.\n"
-                        + "- **`ocr`** — scalar running Tesseract OCR over an image or scanned PDF.\n\n"
-                        + "Typical queries include `SELECT content FROM tika.extract('/docs/report.pdf')`, "
-                        + "joining `extract_all` output against a `documents` table for full-text "
-                        + "indexing, or filtering on `detect_mime` and `detect_lang` to route "
-                        + "documents through a downstream pipeline.");
+                        + "## When to use it\n\n"
+                        + "Reach for this worker whenever unstructured documents need to become "
+                        + "queryable rows: building a full-text or vector index over a document "
+                        + "store, routing or filtering files by their true media type, detecting "
+                        + "the language of a body of text, or pulling structured metadata (author, "
+                        + "title, creation date, page count) out of office and PDF files. Inputs "
+                        + "are always either a `VARCHAR` filesystem path the worker opens or a "
+                        + "`BLOB` of the raw document bytes, so documents already living in a table "
+                        + "column can be processed in place without shuffling files around.\n\n"
+                        + "## Navigating the functions\n\n"
+                        + "The worker's functions are organized into navigable categories — text "
+                        + "and metadata extraction (single-document and whole-column batch), "
+                        + "content detection (media type and language), and optical character "
+                        + "recognition. List the `tika` schema, or browse its category registry, to "
+                        + "discover the exact function for a task along with its runnable examples "
+                        + "and documented columns.");
+        // VGI152/VGI920 agent-suitability suite for `vgi-lint simulate`. Every
+        // prompt is solvable with only the exposed functions and is graded against
+        // the hidden reference_sql; each reference is self-contained (inline BLOB
+        // literals, no external files) and deterministic. `ignore_column_names`
+        // compares by values so an equivalent solution grades as correct.
+        tags.put("vgi.agent_test_tasks", AGENT_TEST_TASKS);
         tags.put("vgi.author", "Query.Farm");
         tags.put("vgi.copyright", "Copyright 2026 Query Farm LLC - https://query.farm");
         tags.put("vgi.license", "MIT");
@@ -163,18 +213,50 @@ public final class Main {
         // only on the catalog object (set via Worker.builder().sourceUrl(...)).
         tags.put(
                 "vgi.doc_llm",
-                "Apache Tika document-extraction functions: extract text/metadata/language/page "
-                        + "counts from a document (`extract`, `metadata`), process a column of "
-                        + "documents (`extract_all`), and detect a document's MIME type, a text's "
-                        + "language and confidence, or OCR images and scanned PDFs (`detect_mime`, "
-                        + "`detect_lang`, `detect_lang_conf`, `ocr`).");
+                "Apache Tika document-analysis functions exposed as DuckDB SQL over Apache Arrow. "
+                        + "This schema covers the worker's full surface: turning a document (a "
+                        + "filesystem path or a BLOB of bytes) into plain text with a metadata map "
+                        + "and page counts, batch-processing a whole column of documents with an id "
+                        + "passthrough, sniffing a document's media type, identifying the natural "
+                        + "language and confidence of a body of text, and running Tesseract OCR "
+                        + "over images and scanned PDFs. The functions are grouped into navigable "
+                        + "categories for text and metadata extraction, content detection, and "
+                        + "optical character recognition.");
         tags.put(
                 "vgi.doc_md",
                 "# tika.main\n\n"
-                        + "Apache Tika document text, metadata, language, and OCR extraction "
-                        + "functions over Apache Arrow. Table functions: `extract`, `metadata`, "
-                        + "`extract_all`; scalars: `detect_mime`, `detect_lang`, "
-                        + "`detect_lang_conf`, `ocr`.");
+                        + "Apache Tika document text, metadata, language, and OCR extraction, "
+                        + "exposed as DuckDB SQL functions over Apache Arrow.\n\n"
+                        + "## Concepts\n\n"
+                        + "Each function takes a document as either a `VARCHAR` filesystem path "
+                        + "(the worker opens it) or a `BLOB` of the raw bytes, and Tika "
+                        + "auto-detects the media type before dispatching to the right parser. Text "
+                        + "extraction returns the plain-text body alongside a `MAP(VARCHAR, "
+                        + "VARCHAR)` of Tika's full metadata bag; per-row error capture keeps a "
+                        + "single corrupt document from failing an entire query.\n\n"
+                        + "## Categories\n\n"
+                        + "The functions are organized into navigable categories — text and "
+                        + "metadata extraction (single-document and batch), content detection "
+                        + "(media type and language), and optical character recognition — so agents "
+                        + "and users can discover the right tool for a task. See each function's "
+                        + "own documentation and examples for exact inputs, options, and returned "
+                        + "columns.");
+        // VGI413 navigation/SEO registry: the ordered category sections this
+        // schema's functions are grouped into. Each object carries a matching
+        // vgi.category naming one of these names.
+        tags.put(
+                "vgi.categories",
+                "[\n"
+                        + "  {\"name\": \"Text & Metadata Extraction\", \"description\": \"Turn a "
+                        + "single document, or a whole column of documents, into plain text plus a "
+                        + "structured metadata map, language, and page counts.\"},\n"
+                        + "  {\"name\": \"Content Detection\", \"description\": \"Identify a "
+                        + "document's media (MIME) type from its bytes and detect the natural "
+                        + "language, with confidence, of a body of text.\"},\n"
+                        + "  {\"name\": \"Optical Character Recognition\", \"description\": \"Recover "
+                        + "text from images and scanned PDFs by running them through Tesseract "
+                        + "OCR.\"}\n"
+                        + "]");
         // VGI506 representative example queries for the schema (self-contained).
         tags.put(
                 "vgi.example_queries",

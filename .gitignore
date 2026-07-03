@@ -3,3 +3,4 @@ build/
 vendor/
 *.class
 duckdb_unittest_tempdir/
+.vgi-*-cache.json

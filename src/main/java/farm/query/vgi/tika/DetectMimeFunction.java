@@ -40,6 +40,7 @@ public final class DetectMimeFunction extends ScalarFn {
     @Override public FunctionMetadata metadata() {
         return FunctionMetadata.describe(description())
                 .withCategories("document", "detection", "tika")
+                .withTag("vgi.category", "Content Detection")
                 .withExamples(List.of(
                         new FunctionExample(
                                 "SELECT tika.main.detect_mime('Hello, plain text body.'::BLOB);",

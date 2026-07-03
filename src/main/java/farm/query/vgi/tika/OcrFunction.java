@@ -43,6 +43,7 @@ public final class OcrFunction extends ScalarFn {
     @Override public FunctionMetadata metadata() {
         return FunctionMetadata.describe(description())
                 .withCategories("document", "ocr", "tika")
+                .withTag("vgi.category", "Optical Character Recognition")
                 .withExamples(List.of(
                         new FunctionExample(
                                 "SELECT tika.main.ocr('/docs/scan.png');",

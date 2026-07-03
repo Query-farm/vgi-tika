@@ -38,6 +38,7 @@ public final class MetadataFunction implements TableFunction {
                         "Extract document metadata (MIME, page count, language, full metadata MAP) "
                                 + "without the body text, via Apache Tika.")
                 .withCategories("document", "metadata", "tika")
+                .withTag("vgi.category", "Text & Metadata Extraction")
                 .withExamples(List.of(
                         new FunctionExample(
                                 "SELECT mime, n_pages, lang FROM tika.main.metadata('A short document body.'::BLOB);",

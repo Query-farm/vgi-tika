@@ -54,6 +54,7 @@ public final class ExtractAllFunction implements TableInOutFunction {
                         "Extract text + metadata for a whole column of documents (paths or bytes), "
                                 + "with an id column passed through onto each output row.")
                 .withCategories("document", "extraction", "tika")
+                .withTag("vgi.category", "Text & Metadata Extraction")
                 .withExamples(List.of(
                         new FunctionExample(
                                 "SELECT id, content, mime FROM tika.main.extract_all("

@@ -49,6 +49,7 @@ public final class ExtractFunction implements TableFunction {
                         "Extract text, metadata, language, and page count from a document (PDF, DOCX, "
                                 + "PPTX, XLSX, HTML, EML, RTF, ODF, images) via Apache Tika.")
                 .withCategories("document", "extraction", "tika")
+                .withTag("vgi.category", "Text & Metadata Extraction")
                 .withExamples(List.of(
                         new FunctionExample(
                                 "SELECT content, mime, n_pages FROM tika.main.extract('A short plain-text body.'::BLOB);",
