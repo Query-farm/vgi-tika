@@ -99,6 +99,10 @@ public final class Main {
               {"name": "ocr_when_no_text_layer",
                "prompt": "Run optical character recognition over a tiny input whose raw bytes are 'x' (there is no real image, so OCR yields no recognizable characters). Return a single row with one column named text holding whatever OCR produces.",
                "reference_sql": "SELECT tika.main.ocr('x'::BLOB) AS text",
+               "ignore_column_names": true},
+              {"name": "discover_function_category",
+               "prompt": "This worker publishes a browsable registry of its own functions. Using that registry, which navigable category does the 'ocr' function belong to? Return a single row with one column named category.",
+               "reference_sql": "SELECT category FROM tika.main.function_registry WHERE function_name = 'ocr'",
                "ignore_column_names": true}
             ]""";
 
@@ -269,6 +273,98 @@ public final class Main {
         return tags;
     }
 
+    /**
+     * A browsable, no-argument function registry (VGI146). The worker's data
+     * surface is entirely argument-taking functions, so an agent has nothing to
+     * scan before it knows a call's arguments. This view exposes a curated,
+     * credential-free catalog of every function — name, category, kind, and a
+     * one-line summary — backed by an inline {@code VALUES} list (no worker RPC,
+     * so it scans without opening any document). It is the concrete "category
+     * registry" the catalog/schema docs invite agents to browse.
+     */
+    static farm.query.vgi.catalog.View functionRegistryView() {
+        String definition =
+                "SELECT * FROM (VALUES\n"
+                    + "  ('extract', 'Text & Metadata Extraction', 'table function', "
+                    + "'Extract plain text, a metadata map, page count, and language from one "
+                    + "document given as a path or BLOB; optional per-page splitting and OCR.'),\n"
+                    + "  ('metadata', 'Text & Metadata Extraction', 'table function', "
+                    + "'Read a document''s MIME type, page count, language, and full metadata map "
+                    + "without extracting the body text.'),\n"
+                    + "  ('extract_all', 'Text & Metadata Extraction', 'table in-out function', "
+                    + "'Extract a whole input column of documents at once, with an optional id "
+                    + "column passed through onto every output row.'),\n"
+                    + "  ('detect_mime', 'Content Detection', 'scalar function', "
+                    + "'Detect the media (MIME) type of a document from its bytes.'),\n"
+                    + "  ('detect_lang', 'Content Detection', 'scalar function', "
+                    + "'Detect the ISO-639 natural-language code of a text string.'),\n"
+                    + "  ('detect_lang_conf', 'Content Detection', 'scalar function', "
+                    + "'Score the language detector''s confidence, from zero to one, in its top "
+                    + "guess for a text string.'),\n"
+                    + "  ('ocr', 'Optical Character Recognition', 'scalar function', "
+                    + "'Run Tesseract OCR over an image or scanned PDF and return the recognized "
+                    + "text.')\n"
+                    + ") AS t(function_name, category, kind, summary)";
+        Map<String, String> tags = new LinkedHashMap<>();
+        tags.put("vgi.title", "Tika Function Registry");
+        tags.put("vgi.category", "Text & Metadata Extraction");
+        // VGI123 classifying tags — BARE keys (not vgi.-namespaced) for faceting.
+        tags.put("domain", "documents");
+        tags.put("topic", "function-registry");
+        tags.put(
+                "vgi.doc_llm",
+                "A browsable, argument-free registry of every function this worker exposes, so an "
+                        + "agent can discover the worker's surface with a plain scan before it "
+                        + "needs to know any function's arguments. Each row names a function, the "
+                        + "navigable category it belongs to, its kind (scalar, table, or table "
+                        + "in-out function), and a one-line summary of what it does. Query it to "
+                        + "pick the right function for a task, then read that function's own "
+                        + "documentation and examples for exact inputs and returned columns.");
+        tags.put(
+                "vgi.doc_md",
+                "# tika.main.function_registry\n\n"
+                        + "A curated, browsable listing of every function in the `tika` worker — "
+                        + "handy for discovery from SQL without calling any parser.\n\n"
+                        + "## Columns\n\n"
+                        + "Each row describes one function: its `function_name`, the navigable "
+                        + "`category` it is grouped under, its `kind` (scalar, table, or table "
+                        + "in-out function), and a short `summary`. Filter by `category` to see a "
+                        + "group, then consult that function's own docs for arguments and output "
+                        + "columns.\n\n"
+                        + "## Example\n\n"
+                        + "Browse the content-detection functions grouped by category, ordered by "
+                        + "name, reading the `function_name`, `kind`, and `summary` columns.");
+        tags.put(
+                "vgi.keywords",
+                Meta.keywordsJson(
+                        "registry", "functions", "catalog", "discovery", "browse", "categories",
+                        "function list", "capabilities", "index"));
+        tags.put(
+                "vgi.example_queries",
+                "[\n"
+                    + "  {\"description\": \"List every function grouped by category, ordered by "
+                    + "name, with its kind and summary.\", "
+                    + "\"sql\": \"SELECT category, function_name, kind, summary FROM "
+                    + "tika.main.function_registry ORDER BY category, function_name\"},\n"
+                    + "  {\"description\": \"Show only the content-detection functions and what "
+                    + "each does.\", "
+                    + "\"sql\": \"SELECT function_name, summary FROM tika.main.function_registry "
+                    + "WHERE category = 'Content Detection' ORDER BY function_name\"}\n"
+                    + "]");
+        Map<String, String> columnComments = new LinkedHashMap<>();
+        columnComments.put("function_name", "Unqualified name of the function, e.g. `extract`.");
+        columnComments.put(
+                "category",
+                "Navigable category the function is grouped under (matches vgi.categories).");
+        columnComments.put(
+                "kind", "Function kind: scalar function, table function, or table in-out function.");
+        columnComments.put("summary", "One-line description of what the function does.");
+        return new farm.query.vgi.catalog.View(
+                "main", "function_registry", definition,
+                "Browsable registry of every tika function (name, category, kind, summary).",
+                tags, columnComments);
+    }
+
     public static Worker buildWorker() {
         return Worker.builder()
                 .catalogName("tika")
@@ -279,6 +375,7 @@ public final class Main {
                 .defaultSchema("main")
                 .schemaComment("main", "Apache Tika document text, metadata, and OCR extraction functions.")
                 .schemaTags("main", schemaTags())
+                .registerView(functionRegistryView())
                 .registerTable(new ExtractFunction())
                 .registerTable(new MetadataFunction())
                 .registerTableInOut(new ExtractAllFunction())

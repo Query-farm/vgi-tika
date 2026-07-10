@@ -74,7 +74,7 @@ public final class MetadataFunction implements TableFunction {
                                 + "- See the returned-columns table below for the exact output shape.",
                         "metadata", "document metadata", "mime", "page count", "language",
                         "author", "properties", "tika", "meta map", "content-type"))
-                .withTag("vgi.result_columns_md", COLUMNS_MD)
+                .withTag("vgi.result_columns_schema", RESULT_COLUMNS_SCHEMA)
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
                         "SELECT mime, n_pages, lang FROM tika.main.metadata('A short document body.'::BLOB);",
                         "Read a document's MIME type, page count, and language without extracting the body text.",
@@ -82,15 +82,25 @@ public final class MetadataFunction implements TableFunction {
                         "Read a single metadata field from the `meta` MAP."));
     }
 
-    /** Markdown table of the columns returned by {@code metadata}. */
-    static final String COLUMNS_MD =
-            "| column | type | description |\n"
-                    + "|---|---|---|\n"
-                    + "| `mime` | VARCHAR | Detected media type, e.g. `application/pdf`. |\n"
-                    + "| `n_pages` | INTEGER | Page/slide/sheet count when the format reports it, else NULL. |\n"
-                    + "| `lang` | VARCHAR | Document language code if Tika reported one. |\n"
-                    + "| `meta` | MAP(VARCHAR, VARCHAR) | Full Tika metadata bag. |\n"
-                    + "| `error` | VARCHAR | Per-row parse error message, or NULL on success. |";
+    /**
+     * Static result schema of {@code metadata} (VGI307), as the structured
+     * {@code vgi.result_columns_schema} JSON array of {@code {name,type,description}}.
+     * The shape is fixed (unlike {@code extract}, which has a {@code by_page}
+     * variant), so a static schema is the correct carrier.
+     */
+    static final String RESULT_COLUMNS_SCHEMA =
+            "[\n"
+                    + "  {\"name\": \"mime\", \"type\": \"VARCHAR\", \"description\": "
+                    + "\"Detected media type, e.g. application/pdf.\"},\n"
+                    + "  {\"name\": \"n_pages\", \"type\": \"INTEGER\", \"description\": "
+                    + "\"Page/slide/sheet count when the format reports it, else NULL.\"},\n"
+                    + "  {\"name\": \"lang\", \"type\": \"VARCHAR\", \"description\": "
+                    + "\"Document language code if Tika reported one, else NULL.\"},\n"
+                    + "  {\"name\": \"meta\", \"type\": \"MAP(VARCHAR, VARCHAR)\", \"description\": "
+                    + "\"Full Tika metadata bag as a MAP(VARCHAR, VARCHAR).\"},\n"
+                    + "  {\"name\": \"error\", \"type\": \"VARCHAR\", \"description\": "
+                    + "\"Per-row parse error message, or NULL on success.\"}\n"
+                    + "]";
 
     @Override public List<ArgSpec> argumentSpecs() {
         // Polymorphic doc arg (VARCHAR path or BLOB bytes) — see ExtractFunction.

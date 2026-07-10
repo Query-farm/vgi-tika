@@ -85,9 +85,9 @@ public final class DetectLangFunction extends ScalarFn {
 
     public void compute(
             @Vector(value = "text",
-                    doc = "The text whose dominant natural language to detect, typically the "
-                            + "`content` column produced by `extract`. NULL, blank, or "
-                            + "low-confidence input yields NULL.")
+                    doc = "The text whose dominant natural language to detect — typically an "
+                            + "extracted document body from `extract`. Text that is empty or too "
+                            + "short to classify yields a NULL result.")
             VarCharVector in, VarCharVector out) {
         LanguageDetector detector;
         try {

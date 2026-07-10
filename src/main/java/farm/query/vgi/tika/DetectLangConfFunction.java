@@ -94,9 +94,9 @@ public final class DetectLangConfFunction extends ScalarFn {
 
     public void compute(
             @Vector(value = "text",
-                    doc = "The text to score, typically an extracted document body. Yields the "
-                            + "detector's confidence (0.0-1.0) in the top detected language; "
-                            + "NULL, blank, or undetected input yields NULL.")
+                    doc = "The text to score for language-detection confidence — typically an "
+                            + "extracted document body. Text that is empty or cannot be "
+                            + "classified yields a NULL confidence.")
             VarCharVector in, Float8Vector out) {
         LanguageDetector detector;
         try {

@@ -102,7 +102,7 @@ public final class ExtractAllFunction implements TableInOutFunction {
                         "extract all", "bulk extract", "batch", "column of documents",
                         "table function", "passthrough id", "corpus", "tika", "paths",
                         "blobs"))
-                .withTag("vgi.result_columns_md", COLUMNS_MD)
+                .withTag("vgi.result_dynamic_columns_md", COLUMNS_MD)
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
                         "SELECT id, content, mime FROM tika.main.extract_all("
                                 + "(SELECT * FROM (VALUES (1, 'First body.'::BLOB), (2, 'Second body.'::BLOB)) AS t(id, body)), "
@@ -122,10 +122,21 @@ public final class ExtractAllFunction implements TableInOutFunction {
      * row); the optional passthrough is noted inline.
      */
     static final String COLUMNS_MD =
-            "| column | type | description |\n"
+            "### Without id passthrough (`id := ''`)\n\n"
+                    + "| name | type | description |\n"
                     + "|---|---|---|\n"
-                    + "| `<id>` | (source type) | Passthrough column named by the `id` argument, copied "
-                    + "from each input row. Present only when `id` is given. |\n"
+                    + "| `content` | VARCHAR | Extracted plain-text body of the document, or NULL on error. |\n"
+                    + "| `mime` | VARCHAR | Detected media type, e.g. `application/pdf`. |\n"
+                    + "| `n_pages` | INTEGER | Page/slide/sheet count when the format reports it, else NULL. |\n"
+                    + "| `lang` | VARCHAR | Document language code if Tika reported one. |\n"
+                    + "| `meta` | MAP(VARCHAR, VARCHAR) | Full Tika metadata bag. |\n"
+                    + "| `error` | VARCHAR | Per-row parse error message, or NULL on success. |\n\n"
+                    + "### With id passthrough (`id := '<column>'`)\n\n"
+                    + "| name | type | description |\n"
+                    + "|---|---|---|\n"
+                    + "| `id` | INTEGER | Passthrough column named by the `id` argument (shown here as "
+                    + "`id`), copied verbatim from each input row so results can be joined back. Its "
+                    + "name and type mirror the chosen source column — INTEGER in these examples. |\n"
                     + "| `content` | VARCHAR | Extracted plain-text body of the document, or NULL on error. |\n"
                     + "| `mime` | VARCHAR | Detected media type, e.g. `application/pdf`. |\n"
                     + "| `n_pages` | INTEGER | Page/slide/sheet count when the format reports it, else NULL. |\n"
@@ -137,7 +148,7 @@ public final class ExtractAllFunction implements TableInOutFunction {
         return List.of(
                 Meta.tableArg("input", 0,
                         "The input relation (a subquery) supplying the documents to extract. "
-                                + "One of its columns holds the documents as either filesystem "
+                                + "A column of this relation holds the documents as filesystem "
                                 + "paths or inline bytes (see `doc_column`); one extract row is "
                                 + "produced per input row."),
                 Meta.namedArg("doc_column", Schemas.UTF8, "",

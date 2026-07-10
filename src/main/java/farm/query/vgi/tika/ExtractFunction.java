@@ -97,7 +97,7 @@ public final class ExtractFunction implements TableFunction {
                         "extract", "text extraction", "document text", "pdf", "docx", "pptx",
                         "xlsx", "html", "tika", "parse document", "content", "metadata",
                         "by_page"))
-                .withTag("vgi.result_columns_md", COLUMNS_MD)
+                .withTag("vgi.result_dynamic_columns_md", COLUMNS_MD)
                 .withTag("vgi.executable_examples", EXECUTABLE_EXAMPLES)
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
                         "SELECT content, mime, n_pages FROM tika.main.extract('A short plain-text body.'::BLOB);",
@@ -127,17 +127,28 @@ public final class ExtractFunction implements TableFunction {
                     + "]";
 
     /**
-     * Markdown table of the columns returned by {@code extract}. The shape is
-     * dynamic ({@code by_page := true} prepends a leading {@code page} column);
-     * the optional column is noted inline.
+     * Result columns of {@code extract} as {@code vgi.result_dynamic_columns_md}
+     * (VGI307): the shape varies by argument — {@code by_page := true} prepends a
+     * leading {@code page} column — so each variant is a separate
+     * {@code Name | Type | Description} table under its own heading.
      */
     static final String COLUMNS_MD =
-            "| column | type | description |\n"
+            "### Default (`by_page := false`)\n\n"
+                    + "| name | type | description |\n"
                     + "|---|---|---|\n"
-                    + "| `page` | INTEGER | 1-based page/slide/sheet ordinal. Present only when `by_page := true`. |\n"
-                    + "| `content` | VARCHAR | Extracted plain-text body of the document (or page), or NULL on error. |\n"
+                    + "| `content` | VARCHAR | Extracted plain-text body of the document, or NULL on error. |\n"
                     + "| `mime` | VARCHAR | Detected media type, e.g. `application/pdf`. |\n"
                     + "| `n_pages` | INTEGER | Page/slide/sheet count when the format reports it, else NULL. |\n"
+                    + "| `lang` | VARCHAR | Document language code if Tika reported one in the metadata. |\n"
+                    + "| `meta` | MAP(VARCHAR, VARCHAR) | Full Tika metadata bag. |\n"
+                    + "| `error` | VARCHAR | Per-row parse error message, or NULL on success. |\n\n"
+                    + "### Per page (`by_page := true`)\n\n"
+                    + "| name | type | description |\n"
+                    + "|---|---|---|\n"
+                    + "| `page` | INTEGER | 1-based page/slide/sheet ordinal. |\n"
+                    + "| `content` | VARCHAR | Extracted plain-text body of this page, or NULL on error. |\n"
+                    + "| `mime` | VARCHAR | Detected media type, e.g. `application/pdf`. |\n"
+                    + "| `n_pages` | INTEGER | Total page count of the source document. |\n"
                     + "| `lang` | VARCHAR | Document language code if Tika reported one in the metadata. |\n"
                     + "| `meta` | MAP(VARCHAR, VARCHAR) | Full Tika metadata bag. |\n"
                     + "| `error` | VARCHAR | Per-row parse error message, or NULL on success. |";

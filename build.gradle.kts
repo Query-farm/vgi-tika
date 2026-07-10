@@ -4,7 +4,7 @@ plugins {
     java
     application
     // Fat/shaded JAR: `./gradlew shadowJar` -> build/libs/vgi-tika-<ver>-all.jar
-    id("com.gradleup.shadow") version "9.4.2"
+    id("com.gradleup.shadow") version "9.5.1"
 }
 
 group = "farm.query"
@@ -41,8 +41,8 @@ dependencies {
     // as farm.query:vgi; the old local SNAPSHOT artifact was named vgi-core) and
     // pulls in farm.query:vgirpc transitively; vgirpc is declared explicitly
     // because the code imports farm.query.vgirpc.* directly. oauth is not used.
-    implementation("farm.query:vgi:0.10.0")
-    implementation("farm.query:vgirpc:0.12.0")
+    implementation("farm.query:vgi:0.16.0")
+    implementation("farm.query:vgirpc:0.15.0")
 
     // Apache Tika — Apache-2.0. tika-core is the streaming Parser/Metadata API;
     // tika-parsers-standard-package pulls PDFBox, POI, jackcess, language-detect,
@@ -52,20 +52,20 @@ dependencies {
     // Language detection (Optimaize) for detect_lang.
     implementation("org.apache.tika:tika-langdetect-optimaize:$tikaVersion")
 
-    implementation("org.slf4j:slf4j-simple:2.0.16")
+    implementation("org.slf4j:slf4j-simple:2.0.18")
     // Some Tika parser modules use the Log4j 2 API. Without a Log4j provider,
     // Log4j's StatusLogger prints "could not find a logging provider" to
     // System.out — which corrupts the stdio Arrow-IPC transport and hangs the
     // worker. Bridge Log4j 2 -> SLF4J -> slf4j-simple (stderr) so NOTHING ever
     // writes to stdout. (slf4j-simple defaults all output to System.err.)
-    implementation("org.apache.logging.log4j:log4j-to-slf4j:2.24.3")
+    implementation("org.apache.logging.log4j:log4j-to-slf4j:2.26.1")
 
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.14.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     // Generate real PDF/DOCX fixtures in tests (these ride in transitively at
     // runtime via tika-parsers-standard-package; declare them for test compile).
-    testImplementation("org.apache.pdfbox:pdfbox:3.0.3")
-    testImplementation("org.apache.poi:poi-ooxml:5.3.0")
+    testImplementation("org.apache.pdfbox:pdfbox:3.0.7")
+    testImplementation("org.apache.poi:poi-ooxml:5.5.1")
 }
 
 application {

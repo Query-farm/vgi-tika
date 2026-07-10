@@ -169,4 +169,3 @@ jobs:
         with:
           location: ${{ env.VGI_TIKA_WORKER }}
           fail-on: info
-          version: "0.37.0"
