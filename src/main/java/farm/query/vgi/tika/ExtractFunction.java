@@ -3,6 +3,7 @@ package farm.query.vgi.tika;
 import farm.query.vgi.function.ArgSpec;
 import farm.query.vgi.function.Arguments;
 import farm.query.vgi.function.FunctionMetadata;
+import farm.query.vgi.function.ParameterExtractor;
 import farm.query.vgi.internal.SchemaUtil;
 import farm.query.vgi.protocol.BindResponse;
 import farm.query.vgi.protocol.FunctionExample;
@@ -180,7 +181,9 @@ public final class ExtractFunction implements TableFunction {
                                 + "Defaults to false (errors are captured)."));
     }
 
-    private static boolean byPage(Arguments a) { return a.namedBool("by_page", false); }
+    private static boolean byPage(Arguments a) {
+        return ParameterExtractor.of(a).named("by_page").asBool().orElse(false);
+    }
 
     @Override public BindResponse onBind(TableBindParams p) {
         Schema schema = byPage(p.arguments())
@@ -198,8 +201,10 @@ public final class ExtractFunction implements TableFunction {
         Object docValue = a.positionalAt(0);
         ArrowType docType = a.positionalTypeAt(0);
         DocInput input = DocInput.fromArgument(docValue, docType);
-        return new State(input, byPage(a), a.namedBool("ocr", false),
-                a.namedString("lang", "eng"), a.namedBool("strict", false), engine);
+        ParameterExtractor p = ParameterExtractor.of(a);
+        return new State(input, byPage(a), p.named("ocr").asBool().orElse(false),
+                p.named("lang").asString().orElse("eng"),
+                p.named("strict").asBool().orElse(false), engine);
     }
 
     public static final class State extends TableProducerState {

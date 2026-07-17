@@ -3,6 +3,7 @@ package farm.query.vgi.tika;
 import farm.query.vgi.function.ArgSpec;
 import farm.query.vgi.function.Arguments;
 import farm.query.vgi.function.FunctionMetadata;
+import farm.query.vgi.function.ParameterExtractor;
 import farm.query.vgi.internal.SchemaUtil;
 import farm.query.vgi.protocol.BindResponse;
 import farm.query.vgi.protocol.FunctionExample;
@@ -204,18 +205,20 @@ public final class ExtractAllFunction implements TableInOutFunction {
     }
 
     @Override public BindResponse onBind(TableInOutBindParams p) {
-        String idColumn = p.arguments().namedString("id", "");
+        String idColumn = ParameterExtractor.of(p.arguments()).named("id").asString().orElse("");
         Schema out = outputSchema(p.inputSchema(), idColumn);
         return BindResponse.forSchema(SchemaUtil.serializeSchema(out));
     }
 
     @Override public TableInOutExchangeState createExchange(TableInOutInitParams params) {
         Arguments a = params.arguments();
-        String idColumn = a.namedString("id", "");
-        String docColumn = resolveDocColumn(params.inputSchema(), a.namedString("doc_column", ""), idColumn);
+        ParameterExtractor p = ParameterExtractor.of(a);
+        String idColumn = p.named("id").asString().orElse("");
+        String docColumn = resolveDocColumn(
+                params.inputSchema(), p.named("doc_column").asString().orElse(""), idColumn);
         Schema outSchema = outputSchema(params.inputSchema(), idColumn);
-        return new State(outSchema, docColumn, idColumn, a.namedBool("ocr", false),
-                a.namedString("lang", "eng"), engine);
+        return new State(outSchema, docColumn, idColumn, p.named("ocr").asBool().orElse(false),
+                p.named("lang").asString().orElse("eng"), engine);
     }
 
     /**

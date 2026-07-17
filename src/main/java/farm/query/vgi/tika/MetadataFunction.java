@@ -3,6 +3,7 @@ package farm.query.vgi.tika;
 import farm.query.vgi.function.ArgSpec;
 import farm.query.vgi.function.Arguments;
 import farm.query.vgi.function.FunctionMetadata;
+import farm.query.vgi.function.ParameterExtractor;
 import farm.query.vgi.internal.SchemaUtil;
 import farm.query.vgi.protocol.BindResponse;
 import farm.query.vgi.protocol.FunctionExample;
@@ -126,7 +127,8 @@ public final class MetadataFunction implements TableFunction {
         Object docValue = a.positionalAt(0);
         ArrowType docType = a.positionalTypeAt(0);
         DocInput input = DocInput.fromArgument(docValue, docType);
-        return new State(input, a.namedBool("strict", false), engine);
+        return new State(input,
+                ParameterExtractor.of(a).named("strict").asBool().orElse(false), engine);
     }
 
     public static final class State extends TableProducerState {
