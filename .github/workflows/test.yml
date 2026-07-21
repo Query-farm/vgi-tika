@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  # Reusable by the Docker publish workflow (docker-publish.yml) so an image is
+  # only ever built after this full unit + vgi-extension integration suite passes.
+  workflow_call:
 
 # The VGI Java SDK (farm.query:vgi, farm.query:vgirpc) is published to Maven
 # Central, so this build is fully self-contained — no sibling-repo checkout,

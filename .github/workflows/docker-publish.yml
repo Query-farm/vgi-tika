@@ -1,0 +1,94 @@
+# Copyright 2026 Query Farm LLC - https://query.farm
+#
+# Build and publish the multi-arch vgi-tika image to ghcr.io. The heavy lifting
+# (multi-arch build -> per-arch /health boot smoke -> image SQL suite -> push ->
+# manifest -> cosign-sign) lives in the shared reusable workflow
+# Query-farm/vgi-actions; this file gates on the repo's own test suite (test.yml)
+# and supplies the worker-specific inputs.
+#
+# Tag-driven: vX.Y.Z -> :X.Y.Z/:X.Y/:latest, push to main -> :edge. Publishing a
+# GitHub Release creates the tag, which fires this too.
+name: Publish image to ghcr.io
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Gate every image on the full unit + vgi-extension integration suite, so a
+  # broken worker is never imaged. vgi-tika's CI file is test.yml (not ci.yml);
+  # it declares `on: workflow_call:` so it can be reused here.
+  ci:
+    uses: ./.github/workflows/test.yml
+
+  publish:
+    needs: [ci]
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    uses: Query-farm/vgi-actions/.github/workflows/docker-publish.yml@v1
+    secrets: inherit
+    with:
+      image_name: vgi-tika
+      # Java fat JAR — nothing to `import`, so the language-import smoke is
+      # skipped. The reusable workflow still runs its dual-arch HTTP /health boot
+      # smoke against the built image.
+      smoke_import: ""
+      health_port: "8000"
+      # No ci/check-version.sh in this repo, so the tag<->version check is omitted.
+      #
+      # Validate the built image's transports against the signed vgi extension.
+      # The worker *logic* is already exercised every run by the gating `ci` job
+      # (all test/sql/*, three transports), so here we only prove the IMAGE's
+      # entrypoints speak the protocol end-to-end:
+      #   - stdio: run the FULL sqllogictest suite through `docker run … stdio`
+      #            (the on-host mode; DuckDB spawns a container per ATTACH).
+      #            vgi-tika's .test files feed the worker file PATHS
+      #            (`tika.extract('test/sql/data/hello.pdf')`) that the worker
+      #            opens against ITS OWN cwd — which is /app inside the container
+      #            — so the committed fixtures are bind-mounted read-only at
+      #            /app/test/sql/data to make the path-based extractions resolve.
+      #   - HTTP : boot the default `http` entrypoint as a warm container and
+      #            confirm /health returns 200 (end-to-end image http check;
+      #            the reusable workflow also boot-smokes /health per arch).
+      # $CITEST_IMAGE is the loaded <image>:citest-amd64 ref; GH_TOKEN is
+      # provided for the haybarn download.
+      image_test: |
+        echo "::group::download haybarn-unittest"
+        REL=$(gh release view --repo Query-farm-haybarn/haybarn --json tagName --jq .tagName)
+        gh release download "$REL" --repo Query-farm-haybarn/haybarn \
+          --pattern 'haybarn_unittest-linux-amd64.zip' --output hb.zip --clobber
+        mkdir -p hb && unzip -o -q hb.zip -d hb
+        export HAYBARN_UNITTEST="$PWD/$(find hb -name 'haybarn-unittest' -type f | head -1)"
+        chmod +x "$HAYBARN_UNITTEST"
+        echo "::endgroup::"
+
+        echo "::group::stdio entrypoint — full suite (container per ATTACH, fixtures mounted)"
+        TRANSPORT=subprocess \
+          VGI_TIKA_WORKER="docker run -i --rm -v $PWD/test/sql/data:/app/test/sql/data:ro $CITEST_IMAGE stdio" \
+          ci/run-integration.sh
+        echo "::endgroup::"
+
+        echo "::group::http entrypoint — warm container /health 200"
+        CID=$(docker run -d -p 18000:8000 "$CITEST_IMAGE")
+        trap 'docker rm -f "$CID" >/dev/null 2>&1 || true' EXIT
+        ok=""
+        for _ in $(seq 1 30); do
+          if curl -fsS http://localhost:18000/health -o /tmp/health.json; then ok=1; break; fi
+          sleep 1
+        done
+        cat /tmp/health.json || true
+        [ -n "$ok" ] || { echo "::error::http entrypoint /health never returned 200"; exit 1; }
+        grep -q '"status":"ok"' /tmp/health.json
+        echo "::endgroup::"

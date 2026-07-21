@@ -1,0 +1,18 @@
+# Keep the build context small: the Dockerfile only needs the Gradle wrapper +
+# build scripts + src/. Everything below is rebuilt inside the image or irrelevant.
+/build
+.gradle
+.git
+.github
+.gitignore
+ci
+docs
+test
+duckdb_unittest_tempdir
+real_dir
+.vgi-*-cache.json
+.DS_Store
+Makefile
+README.md
+gradlew.bat
+vgi-lint.toml
