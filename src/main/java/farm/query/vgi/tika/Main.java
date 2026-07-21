@@ -118,7 +118,7 @@ public final class Main {
                         + "counts, and OCR output from binary documents — PDF, Word, PowerPoint, "
                         + "Excel, HTML, email, RTF, OpenDocument, and image formats — directly "
                         + "inside DuckDB SQL, powered by Apache Tika. Each call takes either a "
-                        + "filesystem path (the worker opens and reads the file) or a BLOB of the "
+                        + "filesystem path (the worker opens and reads the file) or a `BLOB` of the "
                         + "raw document bytes; the media type is auto-detected, so one call handles "
                         + "dozens of formats. Reach for this worker when you need to mine "
                         + "unstructured documents from SQL — full-text and vector indexing for "
@@ -129,7 +129,7 @@ public final class Main {
                         + "parse failures surface per row rather than aborting the query. The "
                         + "worker's functions are grouped into navigable categories for text and "
                         + "metadata extraction, content detection, and optical character "
-                        + "recognition; list the schema to discover them.");
+                        + "recognition.");
         tags.put(
                 "vgi.doc_md",
                 "# Apache Tika Document & OCR Text Extraction in SQL\n\n"
@@ -176,8 +176,8 @@ public final class Main {
                         + "The worker's functions are organized into navigable categories — text "
                         + "and metadata extraction (single-document and whole-column batch), "
                         + "content detection (media type and language), and optical character "
-                        + "recognition. List the `tika` schema to discover the exact function for "
-                        + "a task along with its runnable examples and documented columns.");
+                        + "recognition — each carrying its own runnable examples and documented "
+                        + "return columns.");
         // VGI152/VGI920 agent-suitability suite for `vgi-lint simulate`. Every
         // prompt is solvable with only the exposed functions and is graded against
         // the hidden reference_sql; each reference is self-contained (inline BLOB
@@ -214,7 +214,7 @@ public final class Main {
                 "vgi.doc_llm",
                 "Apache Tika document-analysis functions exposed as DuckDB SQL over Apache Arrow. "
                         + "This schema covers the worker's full surface: turning a document (a "
-                        + "filesystem path or a BLOB of bytes) into plain text with a metadata map "
+                        + "filesystem path or a `BLOB` of bytes) into plain text with a metadata map "
                         + "and page counts, batch-processing a whole column of documents with an id "
                         + "passthrough, sniffing a document's media type, identifying the natural "
                         + "language and confidence of a body of text, and running Tesseract OCR "
