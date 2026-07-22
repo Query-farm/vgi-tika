@@ -18,4 +18,4 @@
 # and argument choices/defaults instead. Every function here carries described
 # example queries (VGI515) and the schema exposes representative examples, so
 # discovery is covered without a redundant registry view.
-ignore = ["VGI146"]
+ignore = [{ code = "VGI146", kind = "domain-exemption", reason = "VGI146 (table-functions-without-browsable-table) is intentionally ignored. Every function this worker exposes requires a document argument (a filesystem path or a BLOB of bytes) — there is no meaningful 'default data slice' to expose as a browsable, no-argument table. The one browsable entry poin..." }]
