@@ -5,17 +5,11 @@
 # repo root. CLI flags still override anything set here.
 
 [tool.vgi-lint-check]
-# VGI146 (table-functions-without-browsable-table) is intentionally ignored.
-#
-# Every function this worker exposes requires a document argument (a filesystem
-# path or a BLOB of bytes) — there is no meaningful "default data slice" to
-# expose as a browsable, no-argument table. The one browsable entry point that
-# would satisfy VGI146 is a view cataloguing the worker's own functions, but
-# that is exactly what VGI327 (no-function-registry) now forbids as a duplicate
-# of duckdb_functions(). The two rules are in direct tension for a pure
-# argument-taking worker, and VGI146's own guidance resolves it: when arguments
-# are genuinely required, make discovery cheap via strong vgi.example_queries
-# and argument choices/defaults instead. Every function here carries described
-# example queries (VGI515) and the schema exposes representative examples, so
-# discovery is covered without a redundant registry view.
-ignore = [{ code = "VGI146", kind = "domain-exemption", reason = "VGI146 (table-functions-without-browsable-table) is intentionally ignored. Every function this worker exposes requires a document argument (a filesystem path or a BLOB of bytes) — there is no meaningful 'default data slice' to expose as a browsable, no-argument table. The one browsable entry poin..." }]
+# NOTE: this worker used to waive VGI146 (table-functions-without-browsable-table).
+# Every function here requires a document argument (a path or a BLOB), so there is
+# no honest "default data slice" to expose as a browsable table — and the one object
+# that would have satisfied the rule, a view cataloguing the worker's own functions,
+# is what VGI327 forbids. That tension is resolved upstream: since vgi-lint-check
+# 0.74.0 VGI146 honours the escape hatch its own fix hint names and stands down when
+# every table function carries a described example and documented arguments, which
+# this worker does. Waiver removed after `vgi-lint --audit-waivers` reported it dead.
