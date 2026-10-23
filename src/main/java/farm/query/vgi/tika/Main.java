@@ -65,41 +65,27 @@ public final class Main {
 
     /**
      * Fixed agent-suitability suite (VGI152/VGI920). A JSON array of analyst tasks
-     * graded by {@code vgi-lint simulate}: only {@code prompt} is shown to the
-     * simulated analyst; {@code reference_sql} is the hidden canonical solution.
-     * Every reference is self-contained (inline {@code BLOB} literals) and
-     * deterministic; {@code ignore_column_names} makes grading value-based.
+     * graded by {@code vgi-lint simulate}. Only the public {@code name} +
+     * {@code prompt} are published (VGI416); the private grader fields
+     * ({@code reference_sql}, {@code ignore_column_names}) live in the
+     * {@code vgi-agent-tests.yaml} sidecar at the repo root, keyed by task name.
      */
     static final String AGENT_TEST_TASKS = """
             [
               {"name": "detect_document_mime",
-               "prompt": "I have a document whose raw bytes are the text 'Hello, this is a plain-text document body.'. What media (MIME) type does this worker detect for it? Return a single row with one column named mime.",
-               "reference_sql": "SELECT tika.main.detect_mime('Hello, this is a plain-text document body.'::BLOB) AS mime",
-               "ignore_column_names": true},
+               "prompt": "I have a document whose raw bytes are the text 'Hello, this is a plain-text document body.'. What media (MIME) type does this worker detect for it? Return a single row with one column named mime."},
               {"name": "detect_text_language",
-               "prompt": "Detect the natural language of this sentence: 'The quick brown fox jumps over the lazy dog while the sun sets slowly behind the distant hills.'. Return a single row with one column named lang holding the detected language code.",
-               "reference_sql": "SELECT tika.main.detect_lang('The quick brown fox jumps over the lazy dog while the sun sets slowly behind the distant hills.') AS lang",
-               "ignore_column_names": true},
+               "prompt": "Detect the natural language of this sentence: 'The quick brown fox jumps over the lazy dog while the sun sets slowly behind the distant hills.'. Return a single row with one column named lang holding the detected language code."},
               {"name": "language_confidence_score",
-               "prompt": "For the sentence 'The quick brown fox jumps over the lazy dog while the sun sets slowly behind the distant hills.', how confident is the language detector in its top guess? Return the raw confidence score, unrounded, as a single row with one column named confidence.",
-               "reference_sql": "SELECT tika.main.detect_lang_conf('The quick brown fox jumps over the lazy dog while the sun sets slowly behind the distant hills.') AS confidence",
-               "ignore_column_names": true},
+               "prompt": "For the sentence 'The quick brown fox jumps over the lazy dog while the sun sets slowly behind the distant hills.', how confident is the language detector in its top guess? Return the raw confidence score, unrounded, as a single row with one column named confidence."},
               {"name": "extract_document_media_type",
-               "prompt": "Using the single-document extraction, return the detected media type of a document whose raw bytes are 'A short quarterly report body.'. Return a single row with one column named mime.",
-               "reference_sql": "SELECT mime FROM tika.main.extract('A short quarterly report body.'::BLOB)",
-               "ignore_column_names": true},
+               "prompt": "Using the single-document extraction, return the detected media type of a document whose raw bytes are 'A short quarterly report body.'. Return a single row with one column named mime."},
               {"name": "metadata_media_type",
-               "prompt": "Using the metadata-only function (no body text), return the detected media type of a document whose raw bytes are 'A brief internal memo.'. Return a single row with one column named mime.",
-               "reference_sql": "SELECT mime FROM tika.main.metadata('A brief internal memo.'::BLOB)",
-               "ignore_column_names": true},
+               "prompt": "Using the metadata-only function (no body text), return the detected media type of a document whose raw bytes are 'A brief internal memo.'. Return a single row with one column named mime."},
               {"name": "batch_extract_media_types",
-               "prompt": "I have a small table of two documents: id 1 with raw bytes 'alpha document body' and id 2 with raw bytes 'beta document body'. Process them all at once and return each document's id together with its detected media type, ordered by id ascending. Return two columns named id and mime.",
-               "reference_sql": "SELECT id, mime FROM tika.main.extract_all((SELECT * FROM (VALUES (1, 'alpha document body'::BLOB), (2, 'beta document body'::BLOB)) AS t(id, body)), id := 'id', doc_column := 'body') ORDER BY id",
-               "ignore_column_names": true},
+               "prompt": "I have a small table of two documents: id 1 with raw bytes 'alpha document body' and id 2 with raw bytes 'beta document body'. Process them all at once and return each document's id together with its detected media type, ordered by id ascending. Return two columns named id and mime."},
               {"name": "ocr_when_no_text_layer",
-               "prompt": "Run optical character recognition over a tiny input whose raw bytes are 'x' (there is no real image, so OCR yields no recognizable characters). Return a single row with one column named text holding whatever OCR produces.",
-               "reference_sql": "SELECT tika.main.ocr('x'::BLOB) AS text",
-               "ignore_column_names": true}
+               "prompt": "Run optical character recognition over a tiny input whose raw bytes are 'x' (there is no real image, so OCR yields no recognizable characters). Return a single row with one column named text holding whatever OCR produces."}
             ]""";
 
     /** Catalog-level tags surfaced to DuckDB and the vgi-lint metadata linter. */
@@ -179,10 +165,8 @@ public final class Main {
                         + "recognition — each carrying its own runnable examples and documented "
                         + "return columns.");
         // VGI152/VGI920 agent-suitability suite for `vgi-lint simulate`. Every
-        // prompt is solvable with only the exposed functions and is graded against
-        // the hidden reference_sql; each reference is self-contained (inline BLOB
-        // literals, no external files) and deterministic. `ignore_column_names`
-        // compares by values so an equivalent solution grades as correct.
+        // prompt is solvable with only the exposed functions; the hidden graders
+        // live in vgi-agent-tests.yaml (VGI416).
         tags.put("vgi.agent_test_tasks", AGENT_TEST_TASKS);
         tags.put("vgi.author", "Query.Farm");
         tags.put("vgi.copyright", "Copyright 2026 Query Farm LLC - https://query.farm");

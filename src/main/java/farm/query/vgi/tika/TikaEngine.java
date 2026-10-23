@@ -1,7 +1,8 @@
 package farm.query.vgi.tika;
 
-import org.apache.tika.config.TikaConfig;
 import org.apache.tika.detect.Detector;
+import org.apache.tika.io.TikaInputStream;
+import org.apache.tika.metadata.HttpHeaders;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.mime.MediaType;
@@ -10,6 +11,7 @@ import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.Parser;
 import org.apache.tika.parser.ocr.TesseractOCRConfig;
 import org.apache.tika.parser.ocr.TesseractOCRParser;
+import org.apache.tika.parser.pages.TextPolicy;
 import org.apache.tika.parser.pdf.PDFParserConfig;
 import org.apache.tika.sax.BodyContentHandler;
 import org.xml.sax.ContentHandler;
@@ -18,10 +20,7 @@ import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -48,12 +47,10 @@ public final class TikaEngine {
     private final Detector detector;
 
     public TikaEngine() {
-        this(TikaConfig.getDefaultConfig());
-    }
-
-    public TikaEngine(TikaConfig config) {
-        this.parser = new AutoDetectParser(config);
-        this.detector = config.getDetector();
+        // Tika 4 removed TikaConfig; the no-arg AutoDetectParser loads the default
+        // (SPI-discovered) parsers and detector.
+        this.parser = new AutoDetectParser();
+        this.detector = parser.getDetector();
     }
 
     public static TikaEngine shared() {
@@ -77,11 +74,11 @@ public final class TikaEngine {
     // ---- bytes / path acquisition -----------------------------------------
 
     /** Open a path as a stream, or wrap an in-memory byte[]. Caller closes. */
-    private static InputStream open(byte[] bytes, Path path) throws IOException {
+    private static TikaInputStream open(byte[] bytes, Path path) throws IOException {
         if (path != null) {
-            return Files.newInputStream(path);
+            return TikaInputStream.get(path);
         }
-        return new ByteArrayInputStream(bytes != null ? bytes : new byte[0]);
+        return TikaInputStream.get(bytes != null ? bytes : new byte[0]);
     }
 
     // ---- full extraction (text + metadata) --------------------------------
@@ -93,7 +90,7 @@ public final class TikaEngine {
         }
         ContentHandler handler = new BodyContentHandler(WRITE_LIMIT);
         ParseContext context = parseContext(ocrEnabled, ocrLang);
-        try (InputStream in = open(bytes, path)) {
+        try (TikaInputStream in = open(bytes, path)) {
             parser.parse(in, handler, metadata, context);
         } catch (Exception e) {
             return ExtractResult.failure(describe(e));
@@ -181,7 +178,7 @@ public final class TikaEngine {
         // A no-op handler: parse for side effects on Metadata only.
         ContentHandler handler = new BodyContentHandler(0);
         ParseContext context = parseContext(false, null);
-        try (InputStream in = open(bytes, path)) {
+        try (TikaInputStream in = open(bytes, path)) {
             parser.parse(in, handler, metadata, context);
         } catch (org.apache.tika.exception.WriteLimitReachedException limit) {
             // Expected: handler limit is 0, we only wanted metadata.
@@ -197,7 +194,7 @@ public final class TikaEngine {
         for (String name : metadata.names()) {
             meta.put(name, String.join("; ", metadata.getValues(name)));
         }
-        String mime = metadata.get(Metadata.CONTENT_TYPE);
+        String mime = metadata.get(HttpHeaders.CONTENT_TYPE);
         Integer nPages = parseIntOrNull(metadata.get("xmpTPg:NPages"));
         if (nPages == null) {
             nPages = parseIntOrNull(metadata.get("Page-Count"));
@@ -213,8 +210,8 @@ public final class TikaEngine {
         if (path != null) {
             metadata.set(TikaCoreProperties.RESOURCE_NAME_KEY, path.getFileName().toString());
         }
-        try (InputStream in = org.apache.tika.io.TikaInputStream.get(open(bytes, path))) {
-            MediaType type = detector.detect(in, metadata);
+        try (TikaInputStream in = open(bytes, path)) {
+            MediaType type = detector.detect(in, metadata, new ParseContext());
             return type == null ? null : type.toString();
         } catch (Exception e) {
             return null;
@@ -231,7 +228,7 @@ public final class TikaEngine {
         Metadata metadata = new Metadata();
         ContentHandler handler = new BodyContentHandler(WRITE_LIMIT);
         ParseContext context = parseContext(true, lang);
-        try (InputStream in = open(bytes, path)) {
+        try (TikaInputStream in = open(bytes, path)) {
             parser.parse(in, handler, metadata, context);
         } catch (Exception e) {
             return null;
@@ -265,9 +262,10 @@ public final class TikaEngine {
 
         PDFParserConfig pdfConfig = new PDFParserConfig();
         // Only OCR scanned PDFs (no text layer) when OCR is explicitly enabled.
-        pdfConfig.setOcrStrategy(ocrEnabled
-                ? PDFParserConfig.OCR_STRATEGY.OCR_AND_TEXT_EXTRACTION
-                : PDFParserConfig.OCR_STRATEGY.NO_OCR);
+        // Tika 4: the PDF OCR strategy is the page text policy (EXTRACT = no OCR).
+        pdfConfig.pages().setText(ocrEnabled
+                ? TextPolicy.EXTRACT_AND_OCR
+                : TextPolicy.EXTRACT);
         pdfConfig.setExtractInlineImages(false);
         context.set(PDFParserConfig.class, pdfConfig);
 

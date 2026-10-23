@@ -47,7 +47,7 @@ public final class DetectLangFunction extends ScalarFn {
                                 null),
                         new FunctionExample(
                                 "SELECT content, tika.main.detect_lang(content) AS lang "
-                                        + "FROM tika.main.extract('Bonjour le monde, ceci est un texte.'::BLOB);",
+                                        + "FROM tika.main.extract('Bonjour le monde, ceci est un texte en francais.'::BLOB);",
                                 "Detect the language of an extracted document's body text.",
                                 null)))
                 .withTags(Meta.objectTags(

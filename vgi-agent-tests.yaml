@@ -1,0 +1,39 @@
+# Private grader sidecar for `vgi-lint simulate` (and `lint`'s VGI520 coverage).
+# The worker publishes only task names + prompts in `vgi.agent_test_tasks`
+# (Main.AGENT_TEST_TASKS); these grader fields are keyed by that name and never
+# sent to the analyst agent (VGI416).
+tasks:
+  - name: detect_document_mime
+    reference_sql: |-
+      SELECT tika.main.detect_mime('Hello, this is a plain-text document body.'::BLOB) AS mime
+    ignore_column_names: true
+
+  - name: detect_text_language
+    reference_sql: |-
+      SELECT tika.main.detect_lang('The quick brown fox jumps over the lazy dog while the sun sets slowly behind the distant hills.') AS lang
+    ignore_column_names: true
+
+  - name: language_confidence_score
+    reference_sql: |-
+      SELECT tika.main.detect_lang_conf('The quick brown fox jumps over the lazy dog while the sun sets slowly behind the distant hills.') AS confidence
+    ignore_column_names: true
+
+  - name: extract_document_media_type
+    reference_sql: |-
+      SELECT mime FROM tika.main.extract('A short quarterly report body.'::BLOB)
+    ignore_column_names: true
+
+  - name: metadata_media_type
+    reference_sql: |-
+      SELECT mime FROM tika.main.metadata('A brief internal memo.'::BLOB)
+    ignore_column_names: true
+
+  - name: batch_extract_media_types
+    reference_sql: |-
+      SELECT id, mime FROM tika.main.extract_all((SELECT * FROM (VALUES (1, 'alpha document body'::BLOB), (2, 'beta document body'::BLOB)) AS t(id, body)), id := 'id', doc_column := 'body') ORDER BY id
+    ignore_column_names: true
+
+  - name: ocr_when_no_text_layer
+    reference_sql: |-
+      SELECT tika.main.ocr('x'::BLOB) AS text
+    ignore_column_names: true

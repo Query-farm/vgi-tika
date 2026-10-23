@@ -4,7 +4,7 @@ plugins {
     java
     application
     // Fat/shaded JAR: `./gradlew shadowJar` -> build/libs/vgi-tika-<ver>-all.jar
-    id("com.gradleup.shadow") version "9.5.1"
+    id("com.gradleup.shadow") version "9.6.1"
 }
 
 group = "farm.query"
@@ -34,15 +34,15 @@ tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
 }
 
-val tikaVersion = "3.3.1"
+val tikaVersion = "4.1.0"
 
 dependencies {
     // VGI Java SDK from Maven Central. `vgi` is the worker/catalog API (published
     // as farm.query:vgi; the old local SNAPSHOT artifact was named vgi-core) and
     // pulls in farm.query:vgirpc transitively; vgirpc is declared explicitly
     // because the code imports farm.query.vgirpc.* directly. oauth is not used.
-    implementation("farm.query:vgi:0.19.0")
-    implementation("farm.query:vgirpc:0.16.0")
+    implementation("farm.query:vgi:0.43.0")
+    implementation("farm.query:vgirpc:0.33.1")
 
     // Apache Tika — Apache-2.0. tika-core is the streaming Parser/Metadata API;
     // tika-parsers-standard-package pulls PDFBox, POI, jackcess, language-detect,
@@ -52,7 +52,7 @@ dependencies {
     // Language detection (Optimaize) for detect_lang.
     implementation("org.apache.tika:tika-langdetect-optimaize:$tikaVersion")
 
-    implementation("org.slf4j:slf4j-simple:2.0.18")
+    implementation("org.slf4j:slf4j-simple:2.0.20")
     // Some Tika parser modules use the Log4j 2 API. Without a Log4j provider,
     // Log4j's StatusLogger prints "could not find a logging provider" to
     // System.out — which corrupts the stdio Arrow-IPC transport and hangs the
@@ -60,11 +60,11 @@ dependencies {
     // writes to stdout. (slf4j-simple defaults all output to System.err.)
     implementation("org.apache.logging.log4j:log4j-to-slf4j:2.26.1")
 
-    testImplementation("org.junit.jupiter:junit-jupiter:5.14.4")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     // Generate real PDF/DOCX fixtures in tests (these ride in transitively at
     // runtime via tika-parsers-standard-package; declare them for test compile).
-    testImplementation("org.apache.pdfbox:pdfbox:3.0.7")
+    testImplementation("org.apache.pdfbox:pdfbox:3.0.8")
     testImplementation("org.apache.poi:poi-ooxml:5.5.1")
 }
 

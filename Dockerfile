@@ -9,7 +9,7 @@
 # vgi-tika is STATELESS: extraction is pure compute over the document bytes /
 # path handed to each call, so there is no /data volume, no model registry, and
 # no `farm.query.vgi.volumes` mount-discovery label. The image is the shaded fat
-# JAR (Tika 3.x + PDFBox + POI) + a tiny entrypoint, plus the system Tesseract
+# JAR (Tika 4.x + PDFBox + POI) + a tiny entrypoint, plus the system Tesseract
 # binary so the `ocr` function and scanned-PDF auto-OCR actually work (Tika
 # guards to NULL when Tesseract is absent).
 # syntax=docker/dockerfile:1

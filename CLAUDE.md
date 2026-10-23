@@ -13,7 +13,7 @@ DSL, JDK 21) into a shaded fat JAR. Catalog name `tika` (single `main` schema).
 ## Layout
 
 ```
-build.gradle.kts / settings.gradle.kts / gradle.properties   Gradle, shadow plugin (com.gradleup.shadow 9.4.2)
+build.gradle.kts / settings.gradle.kts / gradle.properties   Gradle, shadow plugin (com.gradleup.shadow 9.6.1)
 src/main/java/farm/query/vgi/tika/
   Main.java                  Worker.builder().catalogName("tika")...registerTable/registerScalar
   ExtractFunction.java       table fn: extract(path|bytes), by_page per-page splitting
@@ -57,8 +57,8 @@ Makefile                     build / fixtures / test-unit / test-sql / test / cl
 
 ## SDK dependency & CI (self-contained via Maven Central)
 
-The worker depends on the VGI Java SDK `farm.query:vgi:0.5.0` (the worker/catalog
-API; pulls in `farm.query:vgirpc:0.10.2` transitively — declared explicitly since
+The worker depends on the VGI Java SDK `farm.query:vgi:0.43.0` (the worker/catalog
+API; pulls in `farm.query:vgirpc:0.33.1` transitively — declared explicitly since
 the code imports `farm.query.vgirpc.*`). **It's on Maven Central**, so the build
 is fully self-contained: no sibling checkout, no `mavenLocal`, no composite build.
 `.github/workflows/test.yml` is a single `build-and-test` job that resolves from
@@ -93,6 +93,6 @@ via `make fixtures` (Gradle `generateSqlFixtures`).
 
 ## Packaging
 
-~88 MB shaded JAR (Tika 3.3.1 + PDFBox + POI, all Apache-2.0). The README notes
+~88 MB shaded JAR (Tika 4.1.0 + PDFBox + POI, all Apache-2.0). The README notes
 GraalVM native-image as the cold-start follow-up. Tesseract (system binary) is
 optional, only for `ocr` and scanned-PDF auto-OCR.

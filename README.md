@@ -163,7 +163,7 @@ extension expects).
 Two things make the shaded artifact work as a standalone worker; both are wired in
 `build.gradle.kts`:
 
-- **SPI merge.** Tika 3.x splits its parsers across ~27 `tika-parser-*-module` jars
+- **SPI merge.** Tika 3.x/4.x splits its parsers across ~27 `tika-parser-*-module` jars
   that each declare the same `org.apache.tika.parser.Parser` service. Shadow's
   `mergeServiceFiles()` alone collapsed them to a single entry (only
   `CompositeExternalParser` survived), which silently made body extraction return

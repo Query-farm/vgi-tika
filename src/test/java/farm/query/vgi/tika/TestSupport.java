@@ -31,14 +31,22 @@ public final class TestSupport {
         Schema outputSchema = SchemaUtil.deserializeSchema(bindResp.output_schema());
 
         TableInitParams init = new TableInitParams(
-                fn.name(), args, outputSchema, Map.of(),
+                fn.name(), args,
+                outputSchema,           // outputSchema
+                outputSchema,           // bindOutputSchema (vgi 0.2x+: schema bind returned)
+                Map.of(),               // settings
                 Allocators.root(),
-                null, List.of(), List.of(),
-                null, null, null, null, null, null,
-                new byte[0], null, null, null,
-                // vgi 0.4.0 added the AT-syntax (atUnit, atValue) and storage
-                // record components — unused by this in-process test driver.
-                null, null, null, null);
+                null,                   // pushdownFilters
+                List.of(), List.of(),   // projectionIds, joinKeys
+                null,                   // filterCapabilities
+                null, null,             // tablesamplePercentage, tablesampleSeed
+                null, null, null, null, // orderBy column/direction/nullOrder/limit
+                new byte[0],            // executionId
+                null, null, null,       // secrets, attachId, bindOpaqueData
+                null, null,             // atUnit, atValue
+                null,                   // storage
+                null,                   // copyFrom (COPY FROM context)
+                List.of());             // splitPayloads
 
         TableProducerState state = fn.createProducer(init);
 
