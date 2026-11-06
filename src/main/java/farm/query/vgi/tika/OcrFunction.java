@@ -67,7 +67,7 @@ public final class OcrFunction extends ScalarFn {
                                 + "**Important** — OCR requires the system `tesseract` binary on `PATH`. "
                                 + "When it is absent the function returns `NULL` for every row instead of "
                                 + "failing the query, so pipelines stay resilient. Use this for image-only "
-                                + "documents where `extract` returns little or no text.",
+                                + "documents where `extract_text` returns little or no text.",
                         "# ocr\n\n"
                                 + "Returns text recognized from an image or scanned PDF as a `VARCHAR`.\n\n"
                                 + "## Usage\n\n"
@@ -77,7 +77,7 @@ public final class OcrFunction extends ScalarFn {
                                 + "- Requires the `tesseract` system binary; returns `NULL` when it is not "
                                 + "installed rather than raising.\n"
                                 + "- Returns `NULL` for a `NULL` input.\n"
-                                + "- For born-digital documents prefer `extract`; reach for `ocr` when the "
+                                + "- For born-digital documents prefer `extract_text`; reach for `ocr` when the "
                                 + "content is rasterized.",
                         "ocr", "tesseract", "optical character recognition", "scanned",
                         "image text", "scan", "recognize text", "image to text"))

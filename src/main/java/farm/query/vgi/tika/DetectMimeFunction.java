@@ -64,7 +64,7 @@ public final class DetectMimeFunction extends ScalarFn {
                                 + "`application/vnd.openxmlformats-officedocument.wordprocessingml.document`, "
                                 + "or `text/plain`; `NULL` for a `NULL` input.\n\n"
                                 + "Use it to route, filter, or validate documents by type before "
-                                + "calling the heavier `extract` / `metadata` table functions.",
+                                + "calling the heavier `extract_text` / `metadata` table functions.",
                         "# detect_mime\n\n"
                                 + "Returns the detected media type of a document as a `VARCHAR`.\n\n"
                                 + "## Usage\n\n"

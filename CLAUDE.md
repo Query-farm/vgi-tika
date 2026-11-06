@@ -16,8 +16,8 @@ DSL, JDK 21) into a shaded fat JAR. Catalog name `tika` (single `main` schema).
 build.gradle.kts / settings.gradle.kts / gradle.properties   Gradle, shadow plugin (com.gradleup.shadow 9.6.1)
 src/main/java/farm/query/vgi/tika/
   Main.java                  Worker.builder().catalogName("tika")...registerTable/registerScalar
-  ExtractFunction.java       table fn: extract(path|bytes), by_page per-page splitting
-  MetadataFunction.java      table fn: metadata (extract minus content)
+  ExtractFunction.java       table fn: extract_text(path|bytes), by_page per-page splitting
+  MetadataFunction.java      table fn: metadata (extract_text minus content)
   ExtractAllFunction.java    table-in-out over a path/blob column, id passthrough
   DetectMimeFunction.java    scalar
   DetectLangFunction.java / DetectLangConfFunction.java   scalars
@@ -44,7 +44,7 @@ Makefile                     build / fixtures / test-unit / test-sql / test / cl
    `log4j-to-slf4j` (routes logging to stderr). Any dependency that writes to
    stdout will break a stdio VGI worker.
 3. **`Add-Opens: java.base/java.nio`** is baked into the manifest (Arrow needs
-   it); the `extract`/`metadata` doc arg is `any`-typed so a VARCHAR path binds
+   it); the `extract_text`/`metadata` doc arg is `any`-typed so a VARCHAR path binds
    from SQL.
 4. **`haybarn-unittest` skips `require vgi`** — `.test` files use explicit
    `LOAD vgi;`.
@@ -57,12 +57,22 @@ Makefile                     build / fixtures / test-unit / test-sql / test / cl
 
 ## SDK dependency & CI (self-contained via Maven Central)
 
-The worker depends on the VGI Java SDK `farm.query:vgi:0.43.0` (the worker/catalog
-API; pulls in `farm.query:vgirpc:0.33.1` transitively — declared explicitly since
+The worker depends on the VGI Java SDK `farm.query:vgi:0.46.0` (the worker/catalog
+API; pulls in `farm.query:vgirpc` transitively, pinned to 0.33.3 — declared explicitly since
 the code imports `farm.query.vgirpc.*`). **It's on Maven Central**, so the build
 is fully self-contained: no sibling checkout, no `mavenLocal`, no composite build.
 `.github/workflows/test.yml` is a single `build-and-test` job that resolves from
 Central, runs JUnit + shadowJar + an HTTP boot smoke test + `make test-sql`.
+
+**Protocol:** vgi 0.46.0 speaks VGI protocol `vgi.v3` / 3.1.0, which only the
+haybarn **2.0** community `vgi` extension attaches (haybarn 1.5 rejects it).
+`haybarn-unittest` 2.0 isolates `$HOME`, so `ci/run-integration.sh` and
+`make test-sql` pass `--keep-home` (otherwise the installed `vgi` extension is
+"not found").
+
+The single-document table function is `extract_text` (renamed from `extract`
+for haybarn 2.0: DuckDB 2.0 parses `extract(` as the reserved `EXTRACT(field
+FROM ts)` keyword, so `tika.main.extract(...)` is a parser error).
 
 - **Artifact rename:** the old local SNAPSHOT was `farm.query:vgi-core`; the
   Central release is `farm.query:vgi`. Same Java packages (`farm.query.vgi.*`),
@@ -86,7 +96,7 @@ make test                     # both
 
 `make test-sql` builds `build/libs/vgi-tika-*-all.jar`, sets
 `VGI_TIKA_WORKER="java -jar <abs jar>"`, and runs `haybarn-unittest --test-dir .
-"test/sql/*"` (install once: `uv tool install haybarn-unittest`). **The SQL
+"test/sql/*"` (install once: `uv tool install --prerelease allow 'haybarn-unittest>=2.0.0rc11,<2.1'`). **The SQL
 suite is authoritative** — both real bugs above (empty extraction, stdio
 corruption) passed JUnit and were caught only by E2E. Fixtures are reproducible
 via `make fixtures` (Gradle `generateSqlFixtures`).

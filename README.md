@@ -24,12 +24,12 @@ ATTACH 'tika' (TYPE vgi, LOCATION 'java -jar /path/to/vgi-tika-all.jar');
 
 -- one document -> one row of text + metadata
 SELECT content, meta['Content-Type'] AS mime, n_pages
-FROM tika.extract('/docs/report.pdf');
+FROM tika.extract_text('/docs/report.pdf');
 
 -- a whole directory of files, joined back by path
 SELECT f.path, t.content
 FROM glob('/docs/**/*.{pdf,docx,pptx}') f
-CROSS JOIN tika.extract(f.path) t;
+CROSS JOIN tika.extract_text(f.path) t;
 ```
 
 ## How Tika maps onto SQL
@@ -39,7 +39,7 @@ metadata bag. Each capability maps to the VGI primitive that fits its data flow:
 
 | Area | SQL surface | VGI primitive |
 | --- | --- | --- |
-| **Extract (one doc)** | `SELECT * FROM tika.extract(path \| bytes)` | table function (1 arg → 1 row, or N rows with `by_page := true`) |
+| **Extract (one doc)** | `SELECT * FROM tika.extract_text(path \| bytes)` | table function (1 arg → 1 row, or N rows with `by_page := true`) |
 | **Extract (a column of docs)** | `SELECT * FROM tika.extract_all((SELECT id, bytes FROM files), id := 'id')` | table-in-out (streams a column of blobs → rows) |
 | **Metadata only (no text)** | `SELECT * FROM tika.metadata(path \| bytes)` | table function |
 | **Detect mime / language** | `tika.detect_mime(bytes \| path)`, `tika.detect_lang(text)` | scalar |
@@ -62,22 +62,22 @@ metadata bag. Each capability maps to the VGI primitive that fits its data flow:
 
 ## Function catalog
 
-### Extraction — `tika.extract`, `tika.extract_all`, `tika.metadata`
+### Extraction — `tika.extract_text`, `tika.extract_all`, `tika.metadata`
 
-`extract` / `extract_all` output schema:
+`extract_text` / `extract_all` output schema:
 
 ```
 (content VARCHAR, mime VARCHAR, n_pages INT, lang VARCHAR,
  meta MAP(VARCHAR, VARCHAR), error VARCHAR)
 ```
 
-`metadata()` returns the same minus `content`. With `by_page := true`, `extract`
+`metadata()` returns the same minus `content`. With `by_page := true`, `extract_text`
 prepends a `page INT` column. `extract_all` prepends the passthrough `id` column.
 
 ```sql
 -- chunk a PDF into per-page rows ready for an embedding worker
 SELECT page, content
-FROM tika.extract('/docs/contract.pdf', by_page := true);
+FROM tika.extract_text('/docs/contract.pdf', by_page := true);
 
 -- pull author + creation date out of a column of stored bytes, keep the id
 SELECT id, meta['dc:creator'] AS author, meta['dcterms:created'] AS created
@@ -87,7 +87,7 @@ FROM tika.extract_all((SELECT id, body FROM uploaded_files), id := 'id');
 Signatures:
 
 ```
-extract(doc BLOB|VARCHAR, by_page := false, lang := 'eng', ocr := false, strict := false)
+extract_text(doc BLOB|VARCHAR, by_page := false, lang := 'eng', ocr := false, strict := false)
 metadata(doc BLOB|VARCHAR, strict := false)
 extract_all(input TABLE, id := '', doc_column := '', ocr := false, lang := 'eng')
 ```
@@ -104,7 +104,7 @@ detect_lang_conf(text VARCHAR)  -> DOUBLE     -- confidence (0.0-1.0) of detect_
 
 ```sql
 SELECT detect_mime(body) AS mime, count(*) FROM files GROUP BY 1;
-SELECT detect_lang(content), detect_lang_conf(content) FROM tika.extract('/docs/report.pdf');
+SELECT detect_lang(content), detect_lang_conf(content) FROM tika.extract_text('/docs/report.pdf');
 ```
 
 `detect_lang_conf` is the companion confidence score for `detect_lang` — use it to
@@ -119,7 +119,7 @@ ocr(doc BLOB|VARCHAR, lang := 'eng') -> VARCHAR
 Tesseract via Tika's `TesseractOCRParser`; `lang` is a `+`-joined trained-data list
 (e.g. `'eng+spa'`). **Guarded by availability:** if the `tesseract` binary is not on
 `PATH`, every row returns `NULL` rather than failing the query. Scanned PDFs are
-auto-OCR'd inside `extract(..., ocr := true)` when no text layer is found.
+auto-OCR'd inside `extract_text(..., ocr := true)` when no text layer is found.
 
 ```sql
 SELECT tika.ocr(page_image, lang := 'eng+spa') FROM scanned_pages;
@@ -187,7 +187,7 @@ make test-sql    # fat JAR + regenerate fixtures + haybarn-unittest over test/sq
 
 The SQL E2E suite (`test/sql/*.test`) runs the real functions inside DuckDB via
 [`haybarn-unittest`](https://pypi.org/project/haybarn-unittest/) with the fat JAR
-as the VGI `LOCATION`. Install the runner once with `uv tool install haybarn-unittest`
+as the VGI `LOCATION`. Install the runner (haybarn **2.0**; this worker speaks VGI protocol `vgi.v3` / 3.1) once with `uv tool install --prerelease allow 'haybarn-unittest>=2.0.0rc11,<2.1'`
 and put `~/.local/bin` on `PATH`. Fixtures under `test/sql/data/` (a known-text PDF,
 a 3-page PDF, a DOCX, an English text sample, and a corrupt PDF) are reproducible
 from the JUnit PDFBox/POI builders via `make fixtures` (Gradle `generateSqlFixtures`).

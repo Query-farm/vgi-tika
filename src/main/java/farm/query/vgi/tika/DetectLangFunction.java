@@ -47,7 +47,7 @@ public final class DetectLangFunction extends ScalarFn {
                                 null),
                         new FunctionExample(
                                 "SELECT content, tika.main.detect_lang(content) AS lang "
-                                        + "FROM tika.main.extract('Bonjour le monde, ceci est un texte en francais.'::BLOB);",
+                                        + "FROM tika.main.extract_text('Bonjour le monde, ceci est un texte en francais.'::BLOB);",
                                 "Detect the language of an extracted document's body text.",
                                 null)))
                 .withTags(Meta.objectTags(
@@ -57,7 +57,7 @@ public final class DetectLangFunction extends ScalarFn {
                                 + "its ISO-639 code (e.g. `en`, `fr`, `de`), using Apache Tika's "
                                 + "Optimaize n-gram language detector.\n\n"
                                 + "**Input** — a `VARCHAR` of text (often the `content` column produced "
-                                + "by `extract`).\n\n"
+                                + "by `extract_text`).\n\n"
                                 + "**Output** — a short ISO-639 language code, or `NULL` when the input "
                                 + "is `NULL`/blank or no language can be detected confidently.\n\n"
                                 + "Pair it with `detect_lang_conf` to threshold on detection confidence. "
@@ -79,14 +79,14 @@ public final class DetectLangFunction extends ScalarFn {
                         "SELECT tika.main.detect_lang('The quick brown fox jumps over the lazy dog.');",
                         "Detect the ISO-639 language code of a piece of text (returns 'en' here).",
                         "SELECT content, tika.main.detect_lang(content) AS lang "
-                                + "FROM tika.main.extract('Bonjour le monde, ceci est un texte en francais.'::BLOB);",
+                                + "FROM tika.main.extract_text('Bonjour le monde, ceci est un texte en francais.'::BLOB);",
                         "Detect the language of an extracted document's body text."));
     }
 
     public void compute(
             @Vector(value = "text",
                     doc = "The text whose dominant natural language to detect — typically an "
-                            + "extracted document body from `extract`. Text that is empty or too "
+                            + "extracted document body from `extract_text`. Text that is empty or too "
                             + "short to classify yields a NULL result.")
             VarCharVector in, VarCharVector out) {
         LanguageDetector detector;

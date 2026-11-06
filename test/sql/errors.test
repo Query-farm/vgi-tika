@@ -16,7 +16,7 @@ ATTACH 'tika' AS tika (TYPE vgi, LOCATION '${VGI_TIKA_WORKER}');
 
 query II
 SELECT content IS NULL AS no_content, error IS NOT NULL AS has_error
-FROM tika.extract('test/sql/data/does-not-exist.pdf');
+FROM tika.extract_text('test/sql/data/does-not-exist.pdf');
 ----
 true	true
 
@@ -36,7 +36,7 @@ corrupt	true
 # ---- strict := true re-raises and fails the query ---------------------------
 
 statement error
-SELECT * FROM tika.extract('test/sql/data/does-not-exist.pdf', strict := true);
+SELECT * FROM tika.extract_text('test/sql/data/does-not-exist.pdf', strict := true);
 ----
 
 # metadata() honours strict too.

@@ -7,7 +7,7 @@
 #   make test-sql   # shadowJar + haybarn-unittest over test/sql/*
 #
 # SQL E2E needs haybarn-unittest on PATH:
-#   uv tool install 'haybarn-unittest<2'      # binary at ~/.local/bin/haybarn-unittest
+#   uv tool install --prerelease allow 'haybarn-unittest>=2.0.0rc11,<2.1'   # ~/.local/bin/haybarn-unittest
 #   export PATH="$$HOME/.local/bin:$$PATH"
 
 GRADLE        ?= ./gradlew
@@ -36,7 +36,7 @@ test-unit:
 test-sql: build fixtures
 	@command -v $(UNITTEST) >/dev/null 2>&1 || { \
 		echo "ERROR: $(UNITTEST) not found on PATH." >&2; \
-		echo "  Install: uv tool install 'haybarn-unittest<2'" >&2; \
+		echo "  Install: uv tool install --prerelease allow 'haybarn-unittest>=2.0.0rc11,<2.1'" >&2; \
 		echo "  Then:    export PATH=\"\$$HOME/.local/bin:\$$PATH\"" >&2; \
 		exit 1; \
 	}
@@ -44,7 +44,7 @@ test-sql: build fixtures
 	if [ -z "$$JAR" ]; then echo "ERROR: fat JAR not built ($(JAR_GLOB))" >&2; exit 1; fi; \
 	echo "Worker JAR: $$JAR"; \
 	VGI_TIKA_WORKER="java -jar $$(pwd)/$$JAR" \
-		$(UNITTEST) --test-dir "$(TEST_DIR)" "$(TEST_PATTERN)"
+		$(UNITTEST) --keep-home --test-dir "$(TEST_DIR)" "$(TEST_PATTERN)"
 
 test: test-unit test-sql
 

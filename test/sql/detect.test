@@ -28,13 +28,13 @@ application/vnd.openxmlformats-officedocument.wordprocessingml.document
 
 # The english.txt fixture is a long English paragraph -> 'en'.
 query I
-SELECT tika.detect_lang((SELECT content FROM tika.extract('test/sql/data/english.txt')));
+SELECT tika.detect_lang((SELECT content FROM tika.extract_text('test/sql/data/english.txt')));
 ----
 en
 
 # Confidence for that paragraph is high (> 0.5).
 query I
-SELECT tika.detect_lang_conf((SELECT content FROM tika.extract('test/sql/data/english.txt'))) > 0.5;
+SELECT tika.detect_lang_conf((SELECT content FROM tika.extract_text('test/sql/data/english.txt'))) > 0.5;
 ----
 true
 

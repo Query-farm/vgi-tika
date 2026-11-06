@@ -20,7 +20,7 @@ tasks:
 
   - name: extract_document_media_type
     reference_sql: |-
-      SELECT mime FROM tika.main.extract('A short quarterly report body.'::BLOB)
+      SELECT mime FROM tika.main.extract_text('A short quarterly report body.'::BLOB)
     ignore_column_names: true
 
   - name: metadata_media_type

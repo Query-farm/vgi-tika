@@ -55,7 +55,7 @@ jobs:
       #   - stdio: run the FULL sqllogictest suite through `docker run … stdio`
       #            (the on-host mode; DuckDB spawns a container per ATTACH).
       #            vgi-tika's .test files feed the worker file PATHS
-      #            (`tika.extract('test/sql/data/hello.pdf')`) that the worker
+      #            (`tika.extract_text('test/sql/data/hello.pdf')`) that the worker
       #            opens against ITS OWN cwd — which is /app inside the container
       #            — so the committed fixtures are bind-mounted read-only at
       #            /app/test/sql/data to make the path-based extractions resolve.
@@ -66,7 +66,12 @@ jobs:
       # provided for the haybarn download.
       image_test: |
         echo "::group::download haybarn-unittest"
-        REL=$(gh release view --repo Query-farm-haybarn/haybarn --json tagName --jq .tagName)
+        # Newest haybarn 2.0 release (release candidates included). A bare
+        # `gh release view` returns the repo latest release, which is still
+        # the 1.5 line; its vgi extension cannot attach vgi.v3 workers.
+        REL=$(gh release list --repo Query-farm-haybarn/haybarn --limit 30 --json tagName \
+          --jq '[.[].tagName | select(startswith("haybarn-v2.0"))][0]')
+        [ -n "$REL" ] || { echo "::error::no haybarn-v2.0 release found"; exit 1; }
         gh release download "$REL" --repo Query-farm-haybarn/haybarn \
           --pattern 'haybarn_unittest-linux-amd64.zip' --output hb.zip --clobber
         mkdir -p hb && unzip -o -q hb.zip -d hb

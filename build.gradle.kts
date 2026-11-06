@@ -34,15 +34,15 @@ tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
 }
 
-val tikaVersion = "4.1.0"
+val tikaVersion = "4.2.0"
 
 dependencies {
     // VGI Java SDK from Maven Central. `vgi` is the worker/catalog API (published
     // as farm.query:vgi; the old local SNAPSHOT artifact was named vgi-core) and
     // pulls in farm.query:vgirpc transitively; vgirpc is declared explicitly
     // because the code imports farm.query.vgirpc.* directly. oauth is not used.
-    implementation("farm.query:vgi:0.43.0")
-    implementation("farm.query:vgirpc:0.33.1")
+    implementation("farm.query:vgi:0.46.0")
+    implementation("farm.query:vgirpc:0.33.3")
 
     // Apache Tika — Apache-2.0. tika-core is the streaming Parser/Metadata API;
     // tika-parsers-standard-package pulls PDFBox, POI, jackcess, language-detect,

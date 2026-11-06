@@ -18,7 +18,7 @@ import java.util.Map;
 
 /**
  * Shared Arrow schemas + batch-builder for the extraction family
- * ({@code extract}, {@code extract_all}, {@code metadata}).
+ * ({@code extract_text}, {@code extract_all}, {@code metadata}).
  *
  * <p>The {@code meta} column is a DuckDB {@code MAP(VARCHAR, VARCHAR)} — over
  * Arrow that is {@code Map<entries: struct<key: utf8 not null, value: utf8>>}.

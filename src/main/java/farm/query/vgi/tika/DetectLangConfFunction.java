@@ -53,7 +53,7 @@ public final class DetectLangConfFunction extends ScalarFn {
                         new FunctionExample(
                                 "SELECT tika.main.detect_lang(content) AS lang, "
                                         + "tika.main.detect_lang_conf(content) AS conf "
-                                        + "FROM tika.main.extract('The annual report covers quarterly results.'::BLOB);",
+                                        + "FROM tika.main.extract_text('The annual report covers quarterly results.'::BLOB);",
                                 "Report the detected language and its confidence for an "
                                         + "extracted document body.",
                                 null)))
@@ -88,7 +88,7 @@ public final class DetectLangConfFunction extends ScalarFn {
                         "SELECT tika.main.detect_lang_conf('The quick brown fox jumps over the lazy dog.');",
                         "Confidence (0.0-1.0) of the top detected language for a piece of text.",
                         "SELECT tika.main.detect_lang(content) AS lang, tika.main.detect_lang_conf(content) AS conf "
-                                + "FROM tika.main.extract('The annual report covers quarterly results.'::BLOB);",
+                                + "FROM tika.main.extract_text('The annual report covers quarterly results.'::BLOB);",
                         "Report the detected language and its confidence for an extracted document body."));
     }
 

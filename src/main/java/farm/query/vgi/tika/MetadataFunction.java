@@ -22,7 +22,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * {@code tika.metadata(path | bytes, strict := false)} — like {@code extract}
+ * {@code tika.metadata(path | bytes, strict := false)} — like {@code extract_text}
  * but returns metadata only (no body text). One row per call.
  */
 public final class MetadataFunction implements TableFunction {
@@ -53,7 +53,7 @@ public final class MetadataFunction implements TableFunction {
                 .withTags(Meta.objectTags(
                         "Extract Document Metadata Only",
                         "## metadata\n\n"
-                                + "Like `extract`, but returns only a document's metadata — its MIME "
+                                + "Like `extract_text`, but returns only a document's metadata — its MIME "
                                 + "type, page count, language, and the full Tika metadata bag — without "
                                 + "the (potentially large) body text. One row per call.\n\n"
                                 + "**Input** — an `any`-typed `doc` argument: a `VARCHAR` path the worker "
@@ -70,7 +70,7 @@ public final class MetadataFunction implements TableFunction {
                                 + "Pass a path or bytes; read individual fields from the `meta` `MAP` "
                                 + "(e.g. `meta['Author']`, `meta['Content-Type']`).\n\n"
                                 + "## Notes\n\n"
-                                + "- Cheaper than `extract` when the body text is not needed.\n"
+                                + "- Cheaper than `extract_text` when the body text is not needed.\n"
                                 + "- Per-row error capture in the `error` column unless `strict := true`.\n"
                                 + "- See the returned-columns table below for the exact output shape.",
                         "metadata", "document metadata", "mime", "page count", "language",
@@ -86,7 +86,7 @@ public final class MetadataFunction implements TableFunction {
     /**
      * Static result schema of {@code metadata} (VGI307), as the structured
      * {@code vgi.result_columns_schema} JSON array of {@code {name,type,description}}.
-     * The shape is fixed (unlike {@code extract}, which has a {@code by_page}
+     * The shape is fixed (unlike {@code extract_text}, which has a {@code by_page}
      * variant), so a static schema is the correct carrier.
      */
     static final String RESULT_COLUMNS_SCHEMA =

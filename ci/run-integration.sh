@@ -190,12 +190,12 @@ cat > "$STAGE/test/_warm.test" <<'EOF'
 # name: test/_warm.test
 # group: [warm]
 statement ok
-INSTALL vgi FROM community;
+FORCE INSTALL vgi FROM community;
 
 statement ok
-INSTALL httpfs FROM core;
+FORCE INSTALL httpfs FROM core;
 EOF
-"$HAYBARN_UNITTEST" "test/_warm.test" >/dev/null 2>&1 || echo "::warning::extension warm step did not fully succeed"
+"$HAYBARN_UNITTEST" --keep-home "test/_warm.test" >/dev/null 2>&1 || echo "::warning::extension warm step did not fully succeed"
 rm -f "$STAGE/test/_warm.test"
 
 # Run the whole suite in one invocation, streaming the runner's native
@@ -208,7 +208,7 @@ rm -f "$STAGE/test/_warm.test"
 echo "Running suite (transport: $TRANSPORT, worker: $VGI_TIKA_WORKER) ..."
 OUT="$STAGE/suite.out"
 set +e
-"$HAYBARN_UNITTEST" "test/sql/*" 2>&1 | tee "$OUT"
+"$HAYBARN_UNITTEST" --keep-home "test/sql/*" 2>&1 | tee "$OUT"
 status=${PIPESTATUS[0]}
 set -e
 if [ "$status" -ne 0 ]; then

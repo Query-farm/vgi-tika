@@ -11,7 +11,7 @@ import java.util.Map;
  * <p>Attach from DuckDB with:
  * <pre>{@code
  * ATTACH 'tika' (TYPE vgi, LOCATION 'java -jar vgi-tika-all.jar');
- * SELECT content, meta['Content-Type'] AS mime FROM tika.extract('/docs/report.pdf');
+ * SELECT content, meta['Content-Type'] AS mime FROM tika.extract_text('/docs/report.pdf');
  * }</pre>
  */
 public final class Main {
@@ -246,7 +246,7 @@ public final class Main {
         tags.put(
                 "vgi.example_queries",
                 exampleQueriesTag(
-                        "SELECT content, mime FROM tika.main.extract('A plain-text body.'::BLOB)",
+                        "SELECT content, mime FROM tika.main.extract_text('A plain-text body.'::BLOB)",
                         "Extract the plain-text body and detected media type from a single document.",
                         "SELECT mime, n_pages FROM tika.main.metadata('Some document bytes.'::BLOB)",
                         "Read a document's media type and page count without extracting its body text.",

@@ -74,7 +74,7 @@ public final class ExtractAllFunction implements TableInOutFunction {
                 .withTags(Meta.objectTags(
                         "Extract All Documents in a Column",
                         "## extract_all\n\n"
-                                + "A table-in-out function that runs `extract` over a whole column of "
+                                + "A table-in-out function that runs `extract_text` over a whole column of "
                                 + "documents at once. Stream a relation whose column holds either "
                                 + "filesystem paths (`VARCHAR`) or document bytes (`BLOB`); the function "
                                 + "emits one extract row per input row.\n\n"
@@ -82,8 +82,8 @@ public final class ExtractAllFunction implements TableInOutFunction {
                                 + "the document column (defaults to the first non-id column); `id` names a "
                                 + "passthrough column that is excluded from parsing and copied verbatim "
                                 + "onto every output row so results join back to the source; `ocr` and "
-                                + "`lang` control OCR as in `extract`.\n\n"
-                                + "**Output** — the `extract` column set (`content`, `mime`, `n_pages`, "
+                                + "`lang` control OCR as in `extract_text`.\n\n"
+                                + "**Output** — the `extract_text` column set (`content`, `mime`, `n_pages`, "
                                 + "`lang`, `meta`, `error`), optionally prefixed by the `id` passthrough "
                                 + "column.\n\n"
                                 + "**Error handling** — per-row: a failed document yields `NULL` content "
@@ -118,7 +118,7 @@ public final class ExtractAllFunction implements TableInOutFunction {
 
     /**
      * Markdown table of the columns returned by {@code extract_all}. The output
-     * is the {@code extract} column set, optionally prefixed by the passthrough
+     * is the {@code extract_text} column set, optionally prefixed by the passthrough
      * column named by the {@code id} argument (copied verbatim from each input
      * row); the optional passthrough is noted inline.
      */

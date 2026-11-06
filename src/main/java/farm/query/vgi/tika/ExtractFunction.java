@@ -26,7 +26,7 @@ import java.util.List;
 import org.apache.arrow.memory.BufferAllocator;
 
 /**
- * {@code tika.extract(path | bytes, by_page := false, lang := 'eng', ocr := false,
+ * {@code tika.extract_text(path | bytes, by_page := false, lang := 'eng', ocr := false,
  * strict := false)} — extract text + metadata from a single document.
  *
  * <p>Emits exactly one row (the whole document) unless {@code by_page := true},
@@ -43,7 +43,7 @@ public final class ExtractFunction implements TableFunction {
     public ExtractFunction() { this(TikaEngine.shared()); }
     public ExtractFunction(TikaEngine engine) { this.engine = engine; }
 
-    @Override public String name() { return "extract"; }
+    @Override public String name() { return "extract_text"; }
 
     @Override public FunctionMetadata metadata() {
         return FunctionMetadata.describe(
@@ -53,20 +53,20 @@ public final class ExtractFunction implements TableFunction {
                 .withTag("vgi.category", "Text & Metadata Extraction")
                 .withExamples(List.of(
                         new FunctionExample(
-                                "SELECT content, mime, n_pages FROM tika.main.extract('A short plain-text body.'::BLOB);",
+                                "SELECT content, mime, n_pages FROM tika.main.extract_text('A short plain-text body.'::BLOB);",
                                 "Extract the body text, MIME type, and page count of a single document.",
                                 null),
                         new FunctionExample(
-                                "SELECT page, content FROM tika.main.extract('Single page body.'::BLOB, by_page := true);",
+                                "SELECT page, content FROM tika.main.extract_text('Single page body.'::BLOB, by_page := true);",
                                 "Split a document into one row per page (leading `page` column).",
                                 null),
                         new FunctionExample(
-                                "SELECT meta['Content-Type'] AS ct FROM tika.main.extract('Some bytes.'::BLOB);",
+                                "SELECT meta['Content-Type'] AS ct FROM tika.main.extract_text('Some bytes.'::BLOB);",
                                 "Extract from document bytes (a BLOB) and read a metadata key from the `meta` MAP.",
                                 null)))
                 .withTags(Meta.objectTags(
                         "Extract Document Text and Metadata",
-                        "## extract\n\n"
+                        "## extract_text\n\n"
                                 + "Parse a single document with Apache Tika and return its plain-text body "
                                 + "together with detected metadata. Handles PDF, DOCX, PPTX, XLSX, HTML, "
                                 + "EML/MSG, RTF, ODF, and image formats.\n\n"
@@ -82,7 +82,7 @@ public final class ExtractFunction implements TableFunction {
                                 + "**Error handling** — a corrupt or unsupported document yields a row "
                                 + "with `NULL` content and a populated `error` message rather than failing "
                                 + "the whole query, unless `strict := true`.",
-                        "# extract\n\n"
+                        "# extract_text\n\n"
                                 + "Extracts text, metadata, language, and page count from a single "
                                 + "document.\n\n"
                                 + "## Usage\n\n"
@@ -101,11 +101,11 @@ public final class ExtractFunction implements TableFunction {
                 .withTag("vgi.result_dynamic_columns_md", COLUMNS_MD)
                 .withTag("vgi.executable_examples", EXECUTABLE_EXAMPLES)
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
-                        "SELECT content, mime, n_pages FROM tika.main.extract('A short plain-text body.'::BLOB);",
+                        "SELECT content, mime, n_pages FROM tika.main.extract_text('A short plain-text body.'::BLOB);",
                         "Extract the body text, MIME type, and page count of a single document.",
-                        "SELECT page, content FROM tika.main.extract('Single page body.'::BLOB, by_page := true);",
+                        "SELECT page, content FROM tika.main.extract_text('Single page body.'::BLOB, by_page := true);",
                         "Split a document into one row per page (leading `page` column).",
-                        "SELECT meta['Content-Type'] AS ct FROM tika.main.extract('Some bytes.'::BLOB);",
+                        "SELECT meta['Content-Type'] AS ct FROM tika.main.extract_text('Some bytes.'::BLOB);",
                         "Extract from document bytes (a BLOB) and read a metadata key from the `meta` MAP."));
     }
 
@@ -119,16 +119,16 @@ public final class ExtractFunction implements TableFunction {
             "[\n"
                     + "  {\n"
                     + "    \"description\": \"Extract the body text and MIME type of inline document bytes.\",\n"
-                    + "    \"sql\": \"SELECT content, mime FROM tika.main.extract('Hello from a plain-text document body.'::BLOB)\"\n"
+                    + "    \"sql\": \"SELECT content, mime FROM tika.main.extract_text('Hello from a plain-text document body.'::BLOB)\"\n"
                     + "  },\n"
                     + "  {\n"
                     + "    \"description\": \"Read a single key from the Tika metadata MAP of a document.\",\n"
-                    + "    \"sql\": \"SELECT meta['Content-Type'] AS content_type FROM tika.main.extract('Some document bytes.'::BLOB)\"\n"
+                    + "    \"sql\": \"SELECT meta['Content-Type'] AS content_type FROM tika.main.extract_text('Some document bytes.'::BLOB)\"\n"
                     + "  }\n"
                     + "]";
 
     /**
-     * Result columns of {@code extract} as {@code vgi.result_dynamic_columns_md}
+     * Result columns of {@code extract_text} as {@code vgi.result_dynamic_columns_md}
      * (VGI307): the shape varies by argument — {@code by_page := true} prepends a
      * leading {@code page} column — so each variant is a separate
      * {@code Name | Type | Description} table under its own heading.
@@ -242,7 +242,7 @@ public final class ExtractFunction implements TableFunction {
                 if (strict) {
                     for (TikaEngine.PageResult page : pages) {
                         if (page.result().error() != null) {
-                            throw new RuntimeException("tika.extract failed: " + page.result().error());
+                            throw new RuntimeException("tika.extract_text failed: " + page.result().error());
                         }
                     }
                 }
@@ -253,7 +253,7 @@ public final class ExtractFunction implements TableFunction {
 
             TikaEngine.ExtractResult r = engine().extract(bytes, p, ocr, lang);
             if (strict && r.error() != null) {
-                throw new RuntimeException("tika.extract failed: " + r.error());
+                throw new RuntimeException("tika.extract_text failed: " + r.error());
             }
             out.emit(TikaSchemas.singleRow(Allocators.root(), r));
             out.finish();

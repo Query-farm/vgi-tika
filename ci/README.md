@@ -18,7 +18,7 @@ extension from the Haybarn community channel:
    spawn as a subprocess (the VGI LOCATION), and the same JAR serves the HTTP and
    AF_UNIX transports via `--http` / `--unix`.
 2. **Download the runner** — the `haybarn_unittest-linux-amd64.zip` asset from
-   the latest Haybarn release (resolved once in the `resolve-haybarn` job so the
+   the newest Haybarn **2.0** release (`gh release list`, filtered to `haybarn-v2.0*`; a bare `gh release view` still returns the 1.5 line) (resolved once in the `resolve-haybarn` job so the
    version is never hardcoded).
 3. **Preprocess** — the standalone runner links none of the extensions the
    tests gate on, so [`preprocess-require.awk`](preprocess-require.awk) rewrites
@@ -29,7 +29,7 @@ extension from the Haybarn community channel:
 4. **Run** — [`run-integration.sh`](run-integration.sh) stages the preprocessed
    tree plus the committed `test/sql/data` fixtures, brings up the worker on the
    chosen transport, points `VGI_TIKA_WORKER` at it, **warms the extension cache
-   once** (`INSTALL vgi FROM community;` + `INSTALL httpfs FROM core;`) so each
+   once** (`FORCE INSTALL vgi FROM community;` + `FORCE INSTALL httpfs FROM core;`, both runs with `--keep-home`) so each
    test file's explicit `LOAD vgi;` / injected `LOAD httpfs;` succeeds, then runs
    the suite in a single `haybarn-unittest` invocation. Any failed assertion
    exits non-zero and fails the job.
@@ -60,7 +60,7 @@ that same cwd.) In all three cases the committed fixtures are staged into the
 stage dir, so fixture resolution is identical across transports.
 
 The suite is transport-agnostic and **runs in full on all three transports** —
-no per-transport gate. The table functions (`extract`, `metadata`) emit their
+no per-transport gate. The table functions (`extract_text`, `metadata`) emit their
 whole result in one `produceTick` then `finish()`, and the scalars are plain
 request/response.
 
@@ -83,7 +83,7 @@ serializable fields — the output schema as a `byte[]` (via `SchemaUtil`), plus
 scalar `docColumn`/`idColumn`/`ocr`/`lang` — and keeps the non-serializable
 `TikaEngine` and the rebuilt Arrow `Schema` as `transient` fields rebuilt lazily
 on the worker, with a no-arg constructor for the deserializer. (The plain
-`extract`/`metadata` producer state was already http-safe — its `TikaEngine` was
+`extract_text`/`metadata` producer state was already http-safe — its `TikaEngine` was
 already `transient`.) With that, the **full suite — including the `meta`
 `MAP(VARCHAR,VARCHAR)` column and the `extract_all` table-in-out — runs green over
 subprocess, http, and unix.** Arrow Map columns and table-in-out streaming both
