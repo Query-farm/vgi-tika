@@ -20,7 +20,7 @@ pipeline on DuckDB.
 
 ```sql
 INSTALL vgi FROM community; LOAD vgi;
-ATTACH 'tika' (TYPE vgi, LOCATION 'java -jar /path/to/vgi-tika-all.jar');
+ATTACH 'tika' (TYPE vgi, LOCATION 'java -jar vgi-tika-v0.2.0.jar');
 
 -- one document -> one row of text + metadata
 SELECT content, meta['Content-Type'] AS mime, n_pages
@@ -31,6 +31,43 @@ SELECT f.path, t.content
 FROM glob('/docs/**/*.{pdf,docx,pptx}') f
 CROSS JOIN tika.extract_text(f.path) t;
 ```
+
+## Quick start
+
+Every [GitHub release](https://github.com/Query-farm/vgi-tika/releases) ships a self-contained worker jar. It needs Java 21 or newer. Download it:
+
+```sh
+curl -LO https://github.com/Query-farm/vgi-tika/releases/download/v0.2.0/vgi-tika-v0.2.0.jar
+```
+
+then attach it from DuckDB (run from the directory holding the jar, or use its absolute path):
+
+```sql
+INSTALL vgi FROM community;
+LOAD vgi;
+
+ATTACH 'tika' AS tika (TYPE vgi, LOCATION 'java -jar vgi-tika-v0.2.0.jar');
+
+-- Extract the plain-text body and detected media type from a single document.
+SELECT content, mime FROM tika.main.extract_text('A plain-text body.'::BLOB);
+
+-- Read a document's media type and page count without extracting its body text.
+SELECT mime, n_pages FROM tika.main.metadata('Some document bytes.'::BLOB);
+```
+
+OCR (`tika.ocr`, and `extract_text(..., ocr := true)`) uses the system `tesseract` binary, which must be installed and on `PATH`; without it OCR returns `NULL` rather than failing. See [OCR](#ocr--tikaocr). The Docker image below includes Tesseract.
+
+### Other ways to run it
+
+- **Docker** (the image bundles the worker and a Java runtime):
+
+  ```sql
+  ATTACH 'tika' AS tika (TYPE vgi, LOCATION 'docker://ghcr.io/query-farm/vgi-tika:0.2.0');
+  ```
+
+### Build from source
+
+To build the worker jar yourself, see [Build](#build).
 
 ## How Tika maps onto SQL
 
