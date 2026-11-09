@@ -224,7 +224,7 @@ make test-sql    # fat JAR + regenerate fixtures + haybarn-unittest over test/sq
 
 The SQL E2E suite (`test/sql/*.test`) runs the real functions inside DuckDB via
 [`haybarn-unittest`](https://pypi.org/project/haybarn-unittest/) with the fat JAR
-as the VGI `LOCATION`. Install the runner (haybarn **2.0**; this worker speaks VGI protocol `vgi.v3` / 3.1) once with `uv tool install --prerelease allow 'haybarn-unittest>=2.0.0rc11,<2.1'`
+as the VGI `LOCATION`. Install the runner (haybarn **2.0**; this worker speaks VGI protocol `vgi.v3` / 3.2) once with `uv tool install --prerelease allow 'haybarn-unittest>=2.0.0rc11,<2.1'`
 and put `~/.local/bin` on `PATH`. Fixtures under `test/sql/data/` (a known-text PDF,
 a 3-page PDF, a DOCX, an English text sample, and a corrupt PDF) are reproducible
 from the JUnit PDFBox/POI builders via `make fixtures` (Gradle `generateSqlFixtures`).
