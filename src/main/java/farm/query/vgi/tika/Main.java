@@ -93,6 +93,10 @@ public final class Main {
         Map<String, String> tags = new LinkedHashMap<>();
         tags.put("vgi.title", "Apache Tika Document Extraction");
         tags.put(
+                "vgi.subtitle",
+                "Pull text and metadata out of PDFs, Office files and other documents, "
+                        + "detect their type and language, and OCR scanned images.");
+        tags.put(
                 "vgi.keywords",
                 Meta.keywordsJson(
                         "tika", "document extraction", "text extraction", "metadata", "ocr",
@@ -181,7 +185,7 @@ public final class Main {
     /** Tags for the single `main` schema. */
     static Map<String, String> schemaTags() {
         Map<String, String> tags = new LinkedHashMap<>();
-        tags.put("vgi.title", "Tika — main schema");
+        tags.put("vgi.title", "Document extraction");
         tags.put(
                 "vgi.keywords",
                 Meta.keywordsJson(
