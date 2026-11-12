@@ -57,14 +57,14 @@ Makefile                     build / fixtures / test-unit / test-sql / test / cl
 
 ## SDK dependency & CI (self-contained via Maven Central)
 
-The worker depends on the VGI Java SDK `farm.query:vgi:0.47.0` (the worker/catalog
+The worker depends on the VGI Java SDK `farm.query:vgi:0.48.0` (the worker/catalog
 API; pulls in `farm.query:vgirpc` transitively, pinned to 0.33.3 — declared explicitly since
 the code imports `farm.query.vgirpc.*`). **It's on Maven Central**, so the build
 is fully self-contained: no sibling checkout, no `mavenLocal`, no composite build.
 `.github/workflows/test.yml` is a single `build-and-test` job that resolves from
 Central, runs JUnit + shadowJar + an HTTP boot smoke test + `make test-sql`.
 
-**Protocol:** vgi 0.47.0 speaks VGI protocol `vgi.v3` / 3.2.0, which only the
+**Protocol:** vgi 0.48.0 speaks VGI protocol `vgi.v3` / 3.3.0, which only the
 haybarn **2.0** community `vgi` extension attaches (haybarn 1.5 rejects it).
 `haybarn-unittest` 2.0 isolates `$HOME`, so `ci/run-integration.sh` and
 `make test-sql` pass `--keep-home` (otherwise the installed `vgi` extension is

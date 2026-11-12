@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "farm.query"
-version = "0.3.0"
+version = "0.4.0"
 
 repositories {
     // The VGI Java SDK is published to Maven Central as farm.query:vgi /
@@ -41,7 +41,7 @@ dependencies {
     // as farm.query:vgi; the old local SNAPSHOT artifact was named vgi-core) and
     // pulls in farm.query:vgirpc transitively; vgirpc is declared explicitly
     // because the code imports farm.query.vgirpc.* directly. oauth is not used.
-    implementation("farm.query:vgi:0.47.0")
+    implementation("farm.query:vgi:0.48.0")
     implementation("farm.query:vgirpc:0.33.3")
 
     // Apache Tika — Apache-2.0. tika-core is the streaming Parser/Metadata API;
