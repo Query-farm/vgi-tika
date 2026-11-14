@@ -1,0 +1,3 @@
+# Preserve PDF bytes and intentional whitespace-only test input.
+*.pdf binary
+whitespace.txt -text -diff -whitespace
