@@ -27,9 +27,11 @@ SELECT content, meta['Content-Type'] AS mime, n_pages
 FROM tika.extract_text('/docs/report.pdf');
 
 -- a whole directory of files, joined back by path
-SELECT f.path, t.content
-FROM glob('/docs/**/*.{pdf,docx,pptx}') f
-CROSS JOIN tika.extract_text(f.path) t;
+SELECT path, content
+FROM tika.extract_all(
+  (SELECT file AS path, file AS doc FROM glob('/docs/**/*')
+   WHERE regexp_matches(file, '\.(pdf|docx|pptx)$')),
+  id := 'path', doc_column := 'doc');
 ```
 
 ## Quick start
@@ -140,12 +142,19 @@ detect_lang_conf(text VARCHAR)  -> DOUBLE     -- confidence (0.0-1.0) of detect_
 ```
 
 ```sql
-SELECT detect_mime(body) AS mime, count(*) FROM files GROUP BY 1;
-SELECT detect_lang(content), detect_lang_conf(content) FROM tika.extract_text('/docs/report.pdf');
+SELECT tika.detect_mime(body) AS mime, count(*) FROM files GROUP BY 1;
+SELECT tika.detect_lang(content), tika.detect_lang_conf(content) FROM tika.extract_text('/docs/report.pdf');
+
+-- language breakdown of a stored corpus; low-confidence bodies count as 'und'
+SELECT CASE WHEN tika.detect_lang_conf(content) >= 0.5
+            THEN tika.detect_lang(content) ELSE 'und' END AS language,
+       count(*) AS docs
+FROM tika.extract_all((SELECT id, body FROM uploaded_files), id := 'id')
+GROUP BY language ORDER BY docs DESC;
 ```
 
 `detect_lang_conf` is the companion confidence score for `detect_lang` — use it to
-threshold low-confidence detections (e.g. `WHERE detect_lang_conf(content) > 0.5`).
+threshold low-confidence detections (e.g. `WHERE tika.detect_lang_conf(content) > 0.5`).
 
 ### OCR — `tika.ocr`
 

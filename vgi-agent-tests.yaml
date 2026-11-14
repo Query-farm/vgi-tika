@@ -37,3 +37,13 @@ tasks:
     reference_sql: |-
       SELECT tika.main.ocr('x'::BLOB) AS text
     ignore_column_names: true
+
+  - name: least_confident_language_document
+    reference_sql: |-
+      SELECT id FROM tika.main.extract_all((SELECT id, body FROM (VALUES (1, 'The quarterly report shows strong growth across every region this year.'::BLOB), (2, 'Invoice 4471-B'::BLOB), (3, 'Le rapport trimestriel montre une forte croissance dans toutes les regions.'::BLOB)) AS t(id, body)), id := 'id', doc_column := 'body') ORDER BY tika.main.detect_lang_conf(content) ASC LIMIT 1
+    ignore_column_names: true
+
+  - name: english_html_page_titles
+    reference_sql: |-
+      SELECT meta['dc:title'] AS title FROM tika.main.extract_all((SELECT id, body FROM (VALUES (1, '<html><head><title>Pricing</title></head><body><p>Our plans are billed monthly and you can cancel at any time.</p></body></html>'::BLOB), (2, '<html><head><title>Preise</title></head><body><p>Unsere Tarife werden monatlich abgerechnet und sind jederzeit kuendbar.</p></body></html>'::BLOB), (3, '<html><head><title>About us</title></head><body><p>We are a small team building tools for analysts around the world.</p></body></html>'::BLOB)) AS t(id, body)), id := 'id', doc_column := 'body') WHERE tika.main.detect_lang(content) = 'en' ORDER BY title
+    ignore_column_names: true

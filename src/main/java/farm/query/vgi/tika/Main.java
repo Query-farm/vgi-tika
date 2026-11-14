@@ -1,6 +1,7 @@
 package farm.query.vgi.tika;
 
 import farm.query.vgi.Worker;
+import farm.query.vgi.protocol.FunctionExample;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -64,6 +65,58 @@ public final class Main {
     }
 
     /**
+     * An example query defined once and referenced from every list it appears in
+     * (the schema-level {@code vgi.example_queries}, and each participating
+     * function's {@code withExamples} list and {@code vgi.example_queries} tag).
+     */
+    record Example(String sql, String description) {
+        FunctionExample asFunctionExample() {
+            return new FunctionExample(sql, description, null);
+        }
+    }
+
+    /**
+     * Composed: {@code extract_all} over a corpus, then {@code detect_lang} +
+     * {@code detect_lang_conf} on each body, aggregated per language. Bodies too
+     * short to classify (confidence below 0.5, or none at all) land in 'und'.
+     */
+    static final Example LANGUAGE_BREAKDOWN = new Example(
+            "SELECT CASE WHEN tika.main.detect_lang_conf(content) >= 0.5 "
+                    + "THEN tika.main.detect_lang(content) ELSE 'und' END AS language, "
+                    + "count(*) AS docs, list(id ORDER BY id) AS ids "
+                    + "FROM tika.main.extract_all((SELECT id, body FROM (VALUES "
+                    + "(1, 'The quarterly report shows strong growth across every region this year.'::BLOB), "
+                    + "(2, 'Le rapport trimestriel montre une forte croissance dans toutes les regions.'::BLOB), "
+                    + "(3, 'Der Quartalsbericht zeigt ein starkes Wachstum in allen Regionen.'::BLOB), "
+                    + "(4, 'Our customers renewed their contracts early and expanded their usage.'::BLOB), "
+                    + "(5, 'OK'::BLOB), (6, 'PO-88213'::BLOB)) AS t(id, body)), "
+                    + "id := 'id', doc_column := 'body') "
+                    + "GROUP BY language ORDER BY docs DESC, language",
+            "Language breakdown of a document corpus: extract every body with extract_all, "
+                    + "tag it with detect_lang, and send bodies whose detect_lang_conf is below 0.5 "
+                    + "(or undetectable) to 'und'. Returns en [1, 4] and und [5, 6] (2 docs each), then de [3] and fr [2].");
+
+    /**
+     * Composed: {@code detect_mime} sniffs each raw blob so only the HTML pages
+     * are parsed by {@code extract_all}; {@code detect_lang} tags each page body.
+     */
+    static final Example HTML_INBOX_TRIAGE = new Example(
+            "WITH inbox(id, body) AS (VALUES "
+                    + "(1, '<html><head><title>Q3 Update</title></head><body><p>Revenue grew in every region "
+                    + "this quarter and margins improved.</p></body></html>'::BLOB), "
+                    + "(2, '\\x89PNG\\x0D\\x0A\\x1A\\x0A\\x00\\x00\\x00\\x0DIHDR'::BLOB), "
+                    + "(3, '<html><head><title>Point trimestriel</title></head><body><p>Le chiffre d''affaires "
+                    + "a progresse dans toutes les regions ce trimestre.</p></body></html>'::BLOB)) "
+                    + "SELECT x.id, x.meta['dc:title'] AS title, tika.main.detect_lang(x.content) AS language "
+                    + "FROM tika.main.extract_all((SELECT id, body FROM inbox "
+                    + "WHERE tika.main.detect_mime(body) = 'text/html'), id := 'id', doc_column := 'body') AS x "
+                    + "ORDER BY x.id",
+            "Triage a mixed inbox of raw bytes: detect_mime sniffs each blob so only the HTML pages "
+                    + "go through extract_all (the PNG, id 2, is skipped), then each page's <title> "
+                    + "is read from the metadata map and its body language tagged with detect_lang "
+                    + "(1 'Q3 Update' en, 3 'Point trimestriel' fr).");
+
+    /**
      * Fixed agent-suitability suite (VGI152/VGI920). A JSON array of analyst tasks
      * graded by {@code vgi-lint simulate}. Only the public {@code name} +
      * {@code prompt} are published (VGI416); the private grader fields
@@ -85,7 +138,11 @@ public final class Main {
               {"name": "batch_extract_media_types",
                "prompt": "I have a small table of two documents: id 1 with raw bytes 'alpha document body' and id 2 with raw bytes 'beta document body'. Process them all at once and return each document's id together with its detected media type, ordered by id ascending. Return two columns named id and mime."},
               {"name": "ocr_when_no_text_layer",
-               "prompt": "Run optical character recognition over a tiny input whose raw bytes are 'x' (there is no real image, so OCR yields no recognizable characters). Return a single row with one column named text holding whatever OCR produces."}
+               "prompt": "Run optical character recognition over a tiny input whose raw bytes are 'x' (there is no real image, so OCR yields no recognizable characters). Return a single row with one column named text holding whatever OCR produces."},
+              {"name": "least_confident_language_document",
+               "prompt": "I have three documents as raw bytes: id 1 is 'The quarterly report shows strong growth across every region this year.', id 2 is 'Invoice 4471-B', and id 3 is 'Le rapport trimestriel montre une forte croissance dans toutes les regions.'. Extract the body text of each document and find the one whose language detection is least confident. Return a single row with one INTEGER column named id."},
+              {"name": "english_html_page_titles",
+               "prompt": "I have three HTML pages as raw bytes: id 1 is '<html><head><title>Pricing</title></head><body><p>Our plans are billed monthly and you can cancel at any time.</p></body></html>', id 2 is '<html><head><title>Preise</title></head><body><p>Unsere Tarife werden monatlich abgerechnet und sind jederzeit kuendbar.</p></body></html>', and id 3 is '<html><head><title>About us</title></head><body><p>We are a small team building tools for analysts around the world.</p></body></html>'. Return the HTML title, as reported in the extracted document metadata, of every page whose extracted body text is in English. Return one VARCHAR column named title, ordered by title ascending."}
             ]""";
 
     /** Catalog-level tags surfaced to DuckDB and the vgi-lint metadata linter. */
@@ -261,7 +318,9 @@ public final class Main {
                         "SELECT id, content FROM tika.main.extract_all("
                                 + "(SELECT * FROM (VALUES (1, 'Body bytes.'::BLOB)) AS t(id, body)), "
                                 + "id := 'id', doc_column := 'body')",
-                        "Batch-extract a whole column of documents, passing an id column through onto every output row."));
+                        "Batch-extract a whole column of documents, passing an id column through onto every output row.",
+                        LANGUAGE_BREAKDOWN.sql(), LANGUAGE_BREAKDOWN.description(),
+                        HTML_INBOX_TRIAGE.sql(), HTML_INBOX_TRIAGE.description()));
         return tags;
     }
 

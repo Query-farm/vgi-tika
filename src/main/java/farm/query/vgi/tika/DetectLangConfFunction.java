@@ -56,7 +56,8 @@ public final class DetectLangConfFunction extends ScalarFn {
                                         + "FROM tika.main.extract_text('The annual report covers quarterly results.'::BLOB);",
                                 "Report the detected language and its confidence for an "
                                         + "extracted document body.",
-                                null)))
+                                null),
+                        Main.LANGUAGE_BREAKDOWN.asFunctionExample()))
                 .withTags(Meta.objectTags(
                         "Detect Text Language Confidence",
                         "## detect_lang_conf\n\n"
@@ -89,7 +90,8 @@ public final class DetectLangConfFunction extends ScalarFn {
                         "Confidence (0.0-1.0) of the top detected language for a piece of text.",
                         "SELECT tika.main.detect_lang(content) AS lang, tika.main.detect_lang_conf(content) AS conf "
                                 + "FROM tika.main.extract_text('The annual report covers quarterly results.'::BLOB);",
-                        "Report the detected language and its confidence for an extracted document body."));
+                        "Report the detected language and its confidence for an extracted document body.",
+                        Main.LANGUAGE_BREAKDOWN.sql(), Main.LANGUAGE_BREAKDOWN.description()));
     }
 
     public void compute(

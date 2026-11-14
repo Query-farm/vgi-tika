@@ -50,7 +50,8 @@ public final class DetectMimeFunction extends ScalarFn {
                                 "SELECT tika.main.detect_mime('/docs/report.pdf');",
                                 "Detect the MIME type of a document from its file path "
                                         + "(returns e.g. 'application/pdf').",
-                                null)))
+                                null),
+                        Main.HTML_INBOX_TRIAGE.asFunctionExample()))
                 .withTags(Meta.objectTags(
                         "Detect Document MIME Type",
                         "## detect_mime\n\n"
@@ -81,7 +82,8 @@ public final class DetectMimeFunction extends ScalarFn {
                         "SELECT tika.main.detect_mime('Hello, plain text body.'::BLOB);",
                         "Detect the MIME type of inline document bytes (returns 'text/plain').",
                         "SELECT tika.main.detect_mime('/docs/report.pdf');",
-                        "Detect the MIME type of a document from its file path (returns e.g. 'application/pdf')."));
+                        "Detect the MIME type of a document from its file path (returns e.g. 'application/pdf').",
+                        Main.HTML_INBOX_TRIAGE.sql(), Main.HTML_INBOX_TRIAGE.description()));
     }
 
     /** Always VARCHAR, regardless of the (any-typed) input. */

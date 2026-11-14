@@ -70,7 +70,9 @@ public final class ExtractAllFunction implements TableInOutFunction {
                                         + "id := 'id', doc_column := 'body');",
                                 "Extract from a BLOB column (`body`) of inline document bytes, with "
                                         + "the `id` column passed through.",
-                                null)))
+                                null),
+                        Main.LANGUAGE_BREAKDOWN.asFunctionExample(),
+                        Main.HTML_INBOX_TRIAGE.asFunctionExample()))
                 .withTags(Meta.objectTags(
                         "Extract All Documents in a Column",
                         "## extract_all\n\n"
@@ -113,7 +115,9 @@ public final class ExtractAllFunction implements TableInOutFunction {
                         "SELECT id, content FROM tika.main.extract_all("
                                 + "(SELECT * FROM (VALUES (1, 'Inline document bytes.'::BLOB)) AS t(id, body)), "
                                 + "id := 'id', doc_column := 'body');",
-                        "Extract from a BLOB column (`body`) of inline document bytes, with the `id` column passed through."));
+                        "Extract from a BLOB column (`body`) of inline document bytes, with the `id` column passed through.",
+                        Main.LANGUAGE_BREAKDOWN.sql(), Main.LANGUAGE_BREAKDOWN.description(),
+                        Main.HTML_INBOX_TRIAGE.sql(), Main.HTML_INBOX_TRIAGE.description()));
     }
 
     /**
