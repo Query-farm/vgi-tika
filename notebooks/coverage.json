@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "catalogs": {
+    "released": {
+      "path": "coverage/catalog-released.json",
+      "sha256": "348c4515600b3d5bef70d8fa4cc7465d53590f69ccde6aa53f3da92587466ee9",
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_ortools",
+        "reviewed_at": "2026-11-14T21:45:54.606362+00:00",
+        "catalog_sha256": "348c4515600b3d5bef70d8fa4cc7465d53590f69ccde6aa53f3da92587466ee9",
+        "notes": "All 7 named public surfaces retained, including OCR despite its external native requirement. Complete public builder registration at 42200ea9c005f1acd46ca8d9a295f543268431ac exposes 7 functions and no tables/views. Names and signatures match the actual released catalog. Complete release-to-current source diff adds composed example metadata only; compute, registration and runtime dependencies unchanged. Current-interface review is separate from exact runtime execution, which uses released v0.4.0 only."
+      }
+    },
+    "current": {
+      "path": "coverage/catalog-current.json",
+      "sha256": "dce485de8ba181d60e9892ca60711df5102e75ff5147bc290d8c64078980c534",
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_ortools",
+        "reviewed_at": "2026-11-14T21:45:54.606362+00:00",
+        "catalog_sha256": "dce485de8ba181d60e9892ca60711df5102e75ff5147bc290d8c64078980c534",
+        "notes": "All 7 named public surfaces retained, including OCR despite its external native requirement. Complete public builder registration at 42200ea9c005f1acd46ca8d9a295f543268431ac exposes 7 functions and no tables/views. Names and signatures match the actual released catalog. Complete release-to-current source diff adds composed example metadata only; compute, registration and runtime dependencies unchanged. Current-interface review is separate from exact runtime execution, which uses released v0.4.0 only."
+      }
+    }
+  },
+  "notebooks": [
+    {
+      "path": "01_preserve_document_coverage.ipynb",
+      "sha256": "ce91b23c3d9dd47303907e275d84a47e937d736314b30bcae3c87ba682d11e01",
+      "execution": {
+        "path": "coverage/run-01.json",
+        "sha256": "3696e80f148aacd113491e1490db929ce57c37403419ba72ad191bf9bd750a0f"
+      }
+    },
+    {
+      "path": "02_recover_text_before_trusting_language.ipynb",
+      "sha256": "a87b08615a8761a06f7f27cf1be411cd941444485993257100a8ee66a72e2bdd",
+      "execution": {
+        "path": "coverage/run-02.json",
+        "sha256": "e2b1fe5b26c5c8806eacb3e778db994257662ccf7043b019457b56cbc351fab8"
+      }
+    }
+  ],
+  "examples": [
+    {
+      "object": {
+        "schema": "main",
+        "name": "extract_all"
+      },
+      "notebook": "01_preserve_document_coverage.ipynb",
+      "sql": [
+        {
+          "cell": "cb63edf9",
+          "reference": "tika.main.extract_all"
+        }
+      ],
+      "narrative_cells": [
+        "f3963470"
+      ],
+      "result_cells": [
+        "cb63edf9",
+        "2f8aa2f6",
+        "8860cd07"
+      ],
+      "interpretation_cells": [
+        "2f8aa2f6"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_ortools",
+        "reviewed_at": "2026-11-14T21:45:54.606362+00:00",
+        "notebook_sha256": "ce91b23c3d9dd47303907e275d84a47e937d736314b30bcae3c87ba682d11e01",
+        "catalog_sha256": [
+          "348c4515600b3d5bef70d8fa4cc7465d53590f69ccde6aa53f3da92587466ee9",
+          "dce485de8ba181d60e9892ca60711df5102e75ff5147bc290d8c64078980c534"
+        ],
+        "purpose": "Retain all manifest source IDs and distinguish failure from known blank text before selection.",
+        "finding": "Seven source IDs yield 3 text-bearing documents, 2 parse/read errors, 1 known whitespace-only blank and 1 missing input. SQL checks retain all IDs and NULL/zero distinctions; the selection threshold does not alter extraction outcomes."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "extract_text"
+      },
+      "notebook": "01_preserve_document_coverage.ipynb",
+      "sql": [
+        {
+          "cell": "71c9ae4e",
+          "reference": "tika.main.extract_text"
+        }
+      ],
+      "narrative_cells": [
+        "543707d8"
+      ],
+      "result_cells": [
+        "71c9ae4e",
+        "c2f9f75f",
+        "98d88525",
+        "8860cd07"
+      ],
+      "interpretation_cells": [
+        "8860cd07"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_ortools",
+        "reviewed_at": "2026-11-14T21:45:54.606362+00:00",
+        "notebook_sha256": "ce91b23c3d9dd47303907e275d84a47e937d736314b30bcae3c87ba682d11e01",
+        "catalog_sha256": [
+          "348c4515600b3d5bef70d8fa4cc7465d53590f69ccde6aa53f3da92587466ee9",
+          "dce485de8ba181d60e9892ca60711df5102e75ff5147bc290d8c64078980c534"
+        ],
+        "purpose": "Separate physical PDF page rows from whole-document fallback rows and reconcile coverage under selection.",
+        "finding": "Four PDF page rows plus one DOCX and one HTML fallback form 6 chunks. Repeated PDF n_pages=4 sums to 16 while verified pages total 4. Threshold 40→150 reduces selected chunks 4→2, represented text documents 3→2 and PDF pages 2→1; unknown non-PDF page totals remain NULL."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "metadata"
+      },
+      "notebook": "01_preserve_document_coverage.ipynb",
+      "sql": [
+        {
+          "cell": "tika-detection-sql",
+          "reference": "tika.main.metadata"
+        }
+      ],
+      "narrative_cells": [
+        "tika-detection-story"
+      ],
+      "result_cells": [
+        "tika-metadata-result"
+      ],
+      "interpretation_cells": [
+        "tika-metadata-result"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_ortools",
+        "reviewed_at": "2026-11-14T21:45:54.606362+00:00",
+        "notebook_sha256": "ce91b23c3d9dd47303907e275d84a47e937d736314b30bcae3c87ba682d11e01",
+        "catalog_sha256": [
+          "348c4515600b3d5bef70d8fa4cc7465d53590f69ccde6aa53f3da92587466ee9",
+          "dce485de8ba181d60e9892ca60711df5102e75ff5147bc290d8c64078980c534"
+        ],
+        "purpose": "Compare metadata-only page/MIME fields with full extraction without confusing metadata with a body.",
+        "finding": "Valid PDF metadata reports application/pdf and 4 pages, agreeing with the full parse; selected metadata fields and map cardinality are displayed. Metadata parses input and may fail; this call does not return body text."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "detect_mime"
+      },
+      "notebook": "01_preserve_document_coverage.ipynb",
+      "sql": [
+        {
+          "cell": "tika-detection-sql",
+          "reference": "tika.main.detect_mime"
+        }
+      ],
+      "narrative_cells": [
+        "tika-detection-story"
+      ],
+      "result_cells": [
+        "tika-detection-sql",
+        "tika-metadata-result"
+      ],
+      "interpretation_cells": [
+        "tika-metadata-result"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_ortools",
+        "reviewed_at": "2026-11-14T21:45:54.606362+00:00",
+        "notebook_sha256": "ce91b23c3d9dd47303907e275d84a47e937d736314b30bcae3c87ba682d11e01",
+        "catalog_sha256": [
+          "348c4515600b3d5bef70d8fa4cc7465d53590f69ccde6aa53f3da92587466ee9",
+          "dce485de8ba181d60e9892ca60711df5102e75ff5147bc290d8c64078980c534"
+        ],
+        "purpose": "Test whether format hints establish extraction success.",
+        "finding": "The corrupt PDF sniffs as application/pdf while the bulk parse fails. Valid PDF/DOCX/HTML/text paths keep their labels; missing/NULL inputs remain explicit. Format recognition does not repair bytes or prove body recovery."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "ocr"
+      },
+      "notebook": "02_recover_text_before_trusting_language.ipynb",
+      "sql": [
+        {
+          "cell": "tika02-ocr-sql",
+          "reference": "tika.main.ocr"
+        }
+      ],
+      "narrative_cells": [
+        "tika02-raster-story"
+      ],
+      "result_cells": [
+        "tika02-ocr-sql",
+        "tika02-ocr-result"
+      ],
+      "interpretation_cells": [
+        "tika02-ocr-result"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_ortools",
+        "reviewed_at": "2026-11-14T21:45:54.606362+00:00",
+        "notebook_sha256": "a87b08615a8761a06f7f27cf1be411cd941444485993257100a8ee66a72e2bdd",
+        "catalog_sha256": [
+          "348c4515600b3d5bef70d8fa4cc7465d53590f69ccde6aa53f3da92587466ee9",
+          "dce485de8ba181d60e9892ca60711df5102e75ff5147bc290d8c64078980c534"
+        ],
+        "purpose": "Recover text from a synthetic raster and compare with known reference before language routing.",
+        "finding": "Released OCR produces all 24 reference tokens in order after whitespace/case normalization from a clean 1800×500 PNG. English Tesseract prerequisite verified; no empty fallback counted as demonstration. Exact fixture match is not an accuracy estimate on real/degraded scans."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "detect_lang"
+      },
+      "notebook": "02_recover_text_before_trusting_language.ipynb",
+      "sql": [
+        {
+          "cell": "tika02-language-sql",
+          "reference": "tika.main.detect_lang"
+        }
+      ],
+      "narrative_cells": [
+        "tika02-language-story"
+      ],
+      "result_cells": [
+        "tika02-routing-result"
+      ],
+      "interpretation_cells": [
+        "tika02-routing-result"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_ortools",
+        "reviewed_at": "2026-11-14T21:45:54.606362+00:00",
+        "notebook_sha256": "a87b08615a8761a06f7f27cf1be411cd941444485993257100a8ee66a72e2bdd",
+        "catalog_sha256": [
+          "348c4515600b3d5bef70d8fa4cc7465d53590f69ccde6aa53f3da92587466ee9",
+          "dce485de8ba181d60e9892ca60711df5102e75ff5147bc290d8c64078980c534"
+        ],
+        "purpose": "Keep detected language, source representation and routing decision separate.",
+        "finding": "Recovered card and three authored sentences return en/en/fr/de. Ambiguous OK returns de without asserted truth; identifier/blank/NULL remain unknown. Lowering confidence gate 0.8→0.05 retains the weak OK label without changing detected codes or input text."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "detect_lang_conf"
+      },
+      "notebook": "02_recover_text_before_trusting_language.ipynb",
+      "sql": [
+        {
+          "cell": "tika02-language-sql",
+          "reference": "tika.main.detect_lang_conf"
+        }
+      ],
+      "narrative_cells": [
+        "tika02-parameter-story"
+      ],
+      "result_cells": [
+        "tika02-routing-result",
+        "tika02-check-result"
+      ],
+      "interpretation_cells": [
+        "tika02-routing-result"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_ortools",
+        "reviewed_at": "2026-11-14T21:45:54.606362+00:00",
+        "notebook_sha256": "a87b08615a8761a06f7f27cf1be411cd941444485993257100a8ee66a72e2bdd",
+        "catalog_sha256": [
+          "348c4515600b3d5bef70d8fa4cc7465d53590f69ccde6aa53f3da92587466ee9",
+          "dce485de8ba181d60e9892ca60711df5102e75ff5147bc290d8c64078980c534"
+        ],
+        "purpose": "Expose coverage versus weak evidence by varying a local confidence rule.",
+        "finding": "Known long-text scores are near 1; OK returns about 0.102, and three unknown rows keep NULL. Gate 0.8→0.05 increases retained labels 4→5 of 8 without changing OCR/scores. Raw confidence is not calibrated routing accuracy or OCR fidelity."
+      }
+    }
+  ]
+}

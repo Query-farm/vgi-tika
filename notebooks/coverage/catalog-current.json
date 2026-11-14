@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "repository": "Query-farm/vgi-tika",
+  "revision": "42200ea9c005f1acd46ca8d9a295f543268431ac",
+  "captured_at": "2026-11-14T21:45:54.606362+00:00",
+  "default_schema": "main",
+  "scope": "all_public_functions_and_tables",
+  "complete": true,
+  "evidence": [
+    {
+      "path": "coverage/catalog-provenance.json",
+      "sha256": "ace451faf8dc0aa3fccfb63df8339457c07d2577e073e165d748fcbc92190157",
+      "description": "Runtime/source identities and scope of compatibility review."
+    },
+    {
+      "path": "coverage/current-source-registration.json",
+      "sha256": "7428e1f9e03102837448857ed89fa34de42cb8027adf13c5c2f8061161c31424",
+      "description": "Exhaustive current registrations, immutable source hashes/content and complete implementation diff; no current runtime execution."
+    }
+  ],
+  "objects": [
+    {
+      "schema": "main",
+      "name": "extract_text",
+      "kind": "function",
+      "signatures": [
+        "extract_text(ANY, BOOLEAN, BOOLEAN, VARCHAR, BOOLEAN) -> TABLE"
+      ],
+      "authentication": "none",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "metadata",
+      "kind": "function",
+      "signatures": [
+        "metadata(ANY, BOOLEAN) -> TABLE"
+      ],
+      "authentication": "none",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "extract_all",
+      "kind": "function",
+      "signatures": [
+        "extract_all(TABLE, VARCHAR, BOOLEAN, VARCHAR, VARCHAR) -> TABLE"
+      ],
+      "authentication": "none",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "detect_lang",
+      "kind": "function",
+      "signatures": [
+        "detect_lang(VARCHAR) -> VARCHAR"
+      ],
+      "authentication": "none",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "detect_mime",
+      "kind": "function",
+      "signatures": [
+        "detect_mime(ANY) -> VARCHAR"
+      ],
+      "authentication": "none",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "ocr",
+      "kind": "function",
+      "signatures": [
+        "ocr(ANY) -> VARCHAR"
+      ],
+      "authentication": "none",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "detect_lang_conf",
+      "kind": "function",
+      "signatures": [
+        "detect_lang_conf(VARCHAR) -> DOUBLE"
+      ],
+      "authentication": "none",
+      "access": "read"
+    }
+  ]
+}

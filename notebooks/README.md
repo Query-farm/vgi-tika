@@ -1,66 +1,125 @@
-# VGI Tika notebooks
+# Apache Tika Document Extraction examples
 
-[01 · Preserve document coverage](01_preserve_document_coverage.ipynb) audits a document manifest with the real Tika worker, distinguishes missing and failed input from blank text, and selects extracted rows with a visible minimum-character rule. It keeps physical PDF pages separate from whole-document fallback rows.
+- [01 · Preserve document coverage before selecting text](01_preserve_document_coverage.ipynb) keeps the original manifest/failed/blank extraction story, checks MIME hints against actual outcomes and reconciles metadata page counts. Its minimum-character rule keeps physical PDF pages distinct from whole-document fallbacks.
+- [02 · Recover text before trusting a language label](02_recover_text_before_trusting_language.ipynb) OCRs an authored raster card, compares its tokens with the reference and routes a synthetic language queue. A lower confidence gate admits an ambiguous two-letter label without improving the evidence.
 
-## Run
+Read the saved notebooks on GitHub, or use **Open in Colab** and Run All. A single downloaded
+notebook installs the base shared package and retrieves SHA-256-verified companions. Actual hosted
+Colab is untested; validation includes a fresh local Python 3.12 notebook-only environment with
+compatible data/plotting/kernel libraries already loaded.
 
-Install [uv](https://docs.astral.sh/uv/) and Java 21+ on `PATH`. On macOS with Homebrew Java, add `/opt/homebrew/opt/openjdk@21/bin` if needed. The release helper uses POSIX locks on macOS/Linux. Initial setup needs network access for the Python environment, community VGI extension and approximately 78 MB release JAR. All document processing is local; the notebook explicitly disables OCR and does not need Tesseract.
+## Run from this directory
 
-```sh
-uv sync --project notebooks --frozen
-uv run --project notebooks --frozen python notebooks/execute.py
-```
-
-The complete directory works without the parent worker checkout:
-
-```sh
-cd notebooks
-uv sync --frozen
-uv run --frozen python execute.py
-```
-
-In VS Code choose `notebooks/.venv/bin/python` and use `notebooks/` as the kernel working directory. Optionally register a kernel for other Jupyter editors:
+Requires Python 3.11+, [uv](https://docs.astral.sh/uv/), macOS/Linux, and network access for initial
+Python/shared-package, VGI extension, Java runtime, release JAR and companion downloads.
 
 ```sh
-uv run --project notebooks --frozen python -m ipykernel install --user --name vgi-tika-notebooks --display-name 'Python (vgi-tika notebooks)'
+uv sync --locked --extra runner
+uv run --locked --extra runner vgi-notebooks
 ```
 
-Restart and run all after editing the parameter. VGI connection and analytical SQL remain visible; imports, plotting, assertions and cleanup source are folded. Saved outputs embed both charts.
-
-## Experiment
+The [shared package v0.3.23](https://github.com/Query-farm/vgi-example-notebooks/tree/v0.3.23) supplies canonical branding, SVG charts, isolated SQL setup and atomic execution.
+Colab installs only its base package; local publication uses the optional `[runner]` extra and
+`uv.lock`. No worker checkout, Gradle or system Java is required. The complete notebooks directory
+runs independently of the parent repository. Optional local kernel registration:
 
 ```sh
-uv run --project notebooks --frozen python notebooks/execute.py \
-  --parameters '{"MIN_CHARS":150}' \
-  --output-dir notebooks/validation/min-150
+uv run --locked --extra runner python -m ipykernel install --user \
+  --name vgi-tika-notebooks --display-name 'Python (vgi-tika notebooks)'
 ```
 
-The default is 40 normalized characters. Runs of whitespace become one space before trimming/counting. Accepted values are integers 1–5000. The experiment changes selection and its coverage denominators, while preserving the original extraction outcomes. This is not a relevance, quality or token-budget metric.
+Visible SQL uses the published v0.4.0 release:
 
-The runner requires a separate output directory for overrides, rejects unknown parameters, and saves only successful complete executions. It copies branding and runtime companions beside experiment notebooks. Review PNGs live under ignored `validation/charts/`; the main notebook keeps embedded outputs.
+```sql
+INSTALL vgi FROM community;
+LOAD vgi;
+ATTACH 'tika' (TYPE vgi, LOCATION 'uv run --frozen --script tika_release.py v0.4.0');
+```
 
-## Portable worker and fixtures
+`tika_release.py` verifies the 78 MB public JAR's SHA-256 on download and every cached launch,
+uses a bounded POSIX lock and atomic download, and forwards stdio/signals to Java. Its independent
+PEP 723 lock pins `jdk4py==21.0.8.2`; both package and actual Java binary version 21.0.8 are checked.
+The host's Java is not used. JAR SHA-256 is
+`4f65055a0c97e7e94a90377bc6b469ee2d955440135e23c049112e12d3affa61`, and the worker tag resolves to
+`c052ab54a8248e4f2191103f032e26f0180422a4`. Upgrade the reviewed release mapping and digest together,
+then rerun validation. No transitive dependency overrides or engine rebuild are involved.
 
-The literal `ATTACH` uses the [public v0.4.0 JAR](https://github.com/Query-farm/vgi-tika/releases/tag/v0.4.0), SHA-256 `4f65055a0c97e7e94a90377bc6b469ee2d955440135e23c049112e12d3affa61`. `release_jar.py` verifies the digest both after download and before cached launches, uses a bounded lock, publishes atomically, and executes Java. Its cache is `${XDG_CACHE_HOME:-~/.cache}/vgi-notebook-jars/`. No Gradle, sibling repository or source build is required. Upgrade release and digest together, then rerun default and experiment. The notebook's separate lock pins Haybarn 2.0.0rc11.
+Notebook 01 explicitly disables OCR and needs no Tesseract. Notebook 02 requires **Tesseract and
+its English model** on PATH. On macOS use `brew install tesseract`; on Debian/Ubuntu use
+`sudo apt-get install tesseract-ocr tesseract-ocr-eng`. Its visible setup installs these packages
+only when Tesseract is absent in a root Linux environment, then verifies English model availability.
+That Linux installation branch is not exercised on macOS. Tesseract/model versions are external
+native prerequisites, not pinned by uv; saved outputs report the tested native version.
 
-[build_fixture.py](build_fixture.py) regenerates all authored assets using only Python's standard library:
+`connect(globals())` creates empty temporary SQL-secret storage, disables persistence and prevents
+JupySQL's saved default-connection autoload. These local workers require no credentials. Cleanup
+closes the database and removes temporary secret storage; no existing secrets are read or modified.
 
-- [field-guide.pdf](assets/field-guide.pdf): four pages with a long text layer, a short `OK` page, a blank page and a shorter checklist.
-- [support-note.docx](assets/support-note.docx): two paragraphs with no reported physical page count.
-- [brief.html](assets/brief.html): a short synthetic body.
-- [whitespace.txt](assets/whitespace.txt): a successful text parse with zero normalized characters.
-- [corrupt.pdf](assets/corrupt.pdf): deliberately incomplete PDF bytes.
+## Focused experiments
 
-The manifest also includes a deliberately missing path and SQL NULL. Run `uv run --project notebooks --frozen python notebooks/build_fixture.py` to reproduce the fixture bytes. There are no real accounts, private documents or external links.
+```sh
+uv run --locked --extra runner vgi-notebooks 01_preserve_document_coverage.ipynb \
+  --parameters '{"MIN_CHARS":150}' --output-dir validation/min-150
+uv run --locked --extra runner vgi-notebooks 02_recover_text_before_trusting_language.ipynb \
+  --parameters '{"MIN_LANGUAGE_CONFIDENCE":0.05}' --output-dir validation/confidence-0.05
+```
 
-## Interpretation
+The first experiment changes selection only: extraction results and the first inventory chart stay
+fixed. The second lowers the policy from 0.8 to 0.05: recovered text, returned language codes and
+confidence scores stay fixed while the weak `OK` label can enter the retained population. A lower
+gate is not stronger evidence. Restore defaults before publication.
 
-The bulk extractor processes a relation of paths and returns one result per ID, including per-row errors. The notebook preserves raw errors and NULL lengths. It does not turn errors or unavailable data into zero text. The page-level calls are deliberate additional reads of the three text-bearing fixtures; subsequent charts and SQL reuse materialized results.
+Parameter overrides require a separate destination. Unknown names, source-overwriting destinations
+and invalid values fail without replacing the last successful default or experiment. Companion
+files travel with experiment copies. Logs, environments, review exports and experiments are ignored;
+saved defaults retain native SVG plus committed image links for GitHub. Experiments use native SVG
+without unpublished links. Restart and Run All after editing.
 
-With OCR disabled, PDF page rows use actual page boundaries for this fixture. DOCX and HTML return one whole-document fallback each, with unknown `n_pages`. A fallback row is not a verified physical page; the API can also fall back when PDF splitting fails or OCR is enabled. The notebook explicitly validates PDF ordinals against the document's returned page count. `n_pages` repeats on PDF page rows and must not be summed. Metadata is carried only on the first PDF page; later empty maps/NULL language fields are not document-level absence indicators.
+## Synthetic inputs and scope
 
-The threshold keeps or rejects extracted rows; it does not prove the completeness or usefulness of their text. A document can remain represented while some PDF pages are omitted. The table therefore separates original manifest documents, text-bearing documents, represented documents, physical PDF pages and whole-document rows. OCR, image-only PDFs, semantic reading order, layout recovery, language confidence, and arbitrary-format completeness are outside this example.
+The five original files and [build_fixture.py](build_fixture.py) are preserved unchanged: a
+four-page PDF (long text, `OK`, blank page, checklist), a DOCX note, HTML brief, whitespace-only
+text and intentionally corrupt PDF. The first manifest also includes missing-path and SQL NULL
+controls. No real account, private document or external document link is used.
 
-Validation includes executed default and threshold-150 copies, standalone startup with an empty release cache, chart review, twelve SQL invariants plus chart/coverage reconciliation, runner failure guards and deterministic asset regeneration. Source checks passed 34 JUnit tests, 60 stdio / 68 HTTP / 60 Unix SQL assertions across four cases each, and executed metadata 100/100 L2 with zero findings. Default execution took 16.9 seconds; the detached threshold-150 run with an empty release cache took 8.1 seconds. Selected chunks change from four to two, represented documents from three to two, and selected PDF pages from two to one. The extraction-outcome chart is byte-identical across settings. Notebook runs use only the public release JAR. All original worker code, build files and committed SQL fixture bytes are preserved.
+[build_scan.py](build_scan.py) creates a clean 1800×500 white raster with four authored lines;
+[scan-manifest.json](assets/scan-manifest.json) records exact reference tokens and image hash.
+The generator uses Pillow with Matplotlib's DejaVu Sans; the committed image is hash-pinned, so
+readers need not regenerate it or rely on identical font/rendering versions. It is not a captured
+scan, licensed stock image, degraded page, or worker-output fixture. All OCR and language outputs
+are generated by the real released worker.
 
-Official Query.Farm Strata Sun and VGI artwork is copied unchanged from the approved notebook assets and linked at the top and bottom.
+The first story keeps per-row parse failures, missing input and known zero-length text separate.
+`detect_mime` can identify corrupt PDF bytes without proving they parse. `metadata` still parses
+the file; its MIME/page fields are not recovered body text. PDF page rows repeat document totals:
+use one total plus verified row ordinals, not a sum. DOCX/HTML fall back to whole-document rows;
+those row labels do not establish physical page counts. The unchanged minimum-character rule is
+not a relevance, quality, token-budget or completeness metric.
+
+The second story checks exact OCR token order after whitespace/case normalization on one clean
+card. It does not estimate OCR accuracy on handwriting, rotations, degraded images, complex layout
+or other scripts. Tika returns NULL if Tesseract is unavailable, so the notebook checks that
+prerequisite explicitly and requires nonempty matching recognition rather than counting a NULL
+probe as an OCR demonstration. This release's SQL catalog exposes `ocr(doc)` without a named
+`lang` setting; it uses default English. Current documentation mentioning other settings does not
+make those SQL arguments available in the released signature.
+
+Language confidence is the detector's raw top-result score. It is not calibrated routing accuracy,
+OCR fidelity or a percentage of text recovered. The ambiguous `OK` has no asserted correct language;
+identifier/blank/NULL rows retain unknown scores. No document is actually routed or sent elsewhere.
+
+## Coverage and evidence
+
+[coverage.json](coverage.json) maps all **seven public SQL surfaces** to successfully executed
+visible SQL, results and reviewed interpretation across the two stories. Complete released
+functions/tables/views exports include zero tables and zero views. Current public source keeps the
+same seven signatures; its changes add composed examples, not runtime semantics. Exact released
+runtime coverage and reviewed current-interface compatibility are reported separately; no current
+source build is claimed.
+
+Validation includes both defaults, separate parameter experiments, one fresh preloaded bootstrap
+covering the shared launcher/companion path, SQL/reference checks, runner preservation guards,
+figure review and actual GitHub SVG rendering. Existing green [source CI 43574719304](https://github.com/Query-farm/vgi-tika/actions/runs/43574719304)
+is reused for unchanged worker code. No source build, repeated unit/transport suite or source/container
+CI dispatch is performed for this notebook-only migration. Native Linux installation and hosted
+Colab remain untested. Source, build files and original fixture bytes are preserved.

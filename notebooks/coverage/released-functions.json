@@ -1,0 +1,338 @@
+{
+  "query": "SELECT * FROM duckdb_functions() WHERE database_name='tika'",
+  "columns": [
+    "database_name",
+    "database_oid",
+    "schema_name",
+    "function_name",
+    "alias_of",
+    "function_type",
+    "description",
+    "comment",
+    "tags",
+    "return_type",
+    "parameters",
+    "parameter_types",
+    "varargs",
+    "macro_definition",
+    "has_side_effects",
+    "internal",
+    "extension_name",
+    "function_oid",
+    "examples",
+    "stability",
+    "categories"
+  ],
+  "rows": [
+    [
+      "tika",
+      "22592",
+      "main",
+      "extract_text",
+      null,
+      "table",
+      "Extract text, metadata, language, and page count from a document (PDF, DOCX, PPTX, XLSX, HTML, EML, RTF, ODF, images) via Apache Tika.",
+      null,
+      {
+        "vgi.category": "Text & Metadata Extraction",
+        "vgi.doc_llm": "## extract_text\n\nParse a single document with Apache Tika and return its plain-text body together with detected metadata. Handles PDF, DOCX, PPTX, XLSX, HTML, EML/MSG, RTF, ODF, and image formats.\n\n**Input** \u2014 an `any`-typed `doc` argument: a `VARCHAR` filesystem path the worker opens, or a `BLOB` of the document bytes. Named options: `by_page := true` emits one row per page (real per-page splitting for PDFs, a single fallback row for other formats); `lang` sets the OCR language; `ocr := true` forces OCR; `strict := true` re-raises parse errors instead of capturing them.\n\n**Output** \u2014 one row (or one per page) with `content`, `mime`, `n_pages`, `lang`, a `meta` `MAP(VARCHAR, VARCHAR)`, and an `error` column.\n\n**Error handling** \u2014 a corrupt or unsupported document yields a row with `NULL` content and a populated `error` message rather than failing the whole query, unless `strict := true`.",
+        "vgi.doc_md": "# extract_text\n\nExtracts text, metadata, language, and page count from a single document.\n\n## Usage\n\nPass a file path or document bytes. Use `by_page := true` to fan a PDF out into per-page rows, `ocr := true` for image-only content, and `strict := true` to fail loudly on parse errors.\n\n## Notes\n\n- Per-row error capture: failures surface in the `error` column (NULL `content`) unless `strict`.\n- The `meta` column is a `MAP(VARCHAR, VARCHAR)` of Tika's full metadata bag.\n- See the returned-columns table below for the exact output shape.",
+        "vgi.example_queries": "[{\"sql\":\"SELECT content, mime, n_pages FROM tika.main.extract_text('A short plain-text body.'::BLOB);\",\"description\":\"Extract the body text, MIME type, and page count of a single document.\"},{\"sql\":\"SELECT page, content FROM tika.main.extract_text('Single page body.'::BLOB, by_page := true);\",\"description\":\"Split a document into one row per page (leading `page` column).\"},{\"sql\":\"SELECT meta['Content-Type'] AS ct FROM tika.main.extract_text('Some bytes.'::BLOB);\",\"description\":\"Extract from document bytes (a BLOB) and read a metadata key from the `meta` MAP.\"}]",
+        "vgi.executable_examples": "[\n  {\n    \"description\": \"Extract the body text and MIME type of inline document bytes.\",\n    \"sql\": \"SELECT content, mime FROM tika.main.extract_text('Hello from a plain-text document body.'::BLOB)\"\n  },\n  {\n    \"description\": \"Read a single key from the Tika metadata MAP of a document.\",\n    \"sql\": \"SELECT meta['Content-Type'] AS content_type FROM tika.main.extract_text('Some document bytes.'::BLOB)\"\n  }\n]",
+        "vgi.keywords": "[\"extract\",\"text extraction\",\"document text\",\"pdf\",\"docx\",\"pptx\",\"xlsx\",\"html\",\"tika\",\"parse document\",\"content\",\"metadata\",\"by_page\"]",
+        "vgi.result_dynamic_columns_md": "### Default (`by_page := false`)\n\n| name | type | description |\n|---|---|---|\n| `content` | VARCHAR | Extracted plain-text body of the document, or NULL on error. |\n| `mime` | VARCHAR | Detected media type, e.g. `application/pdf`. |\n| `n_pages` | INTEGER | Page/slide/sheet count when the format reports it, else NULL. |\n| `lang` | VARCHAR | Document language code if Tika reported one in the metadata. |\n| `meta` | MAP(VARCHAR, VARCHAR) | Full Tika metadata bag. |\n| `error` | VARCHAR | Per-row parse error message, or NULL on success. |\n\n### Per page (`by_page := true`)\n\n| name | type | description |\n|---|---|---|\n| `page` | INTEGER | 1-based page/slide/sheet ordinal. |\n| `content` | VARCHAR | Extracted plain-text body of this page, or NULL on error. |\n| `mime` | VARCHAR | Detected media type, e.g. `application/pdf`. |\n| `n_pages` | INTEGER | Total page count of the source document. |\n| `lang` | VARCHAR | Document language code if Tika reported one in the metadata. |\n| `meta` | MAP(VARCHAR, VARCHAR) | Full Tika metadata bag. |\n| `error` | VARCHAR | Per-row parse error message, or NULL on success. |",
+        "vgi.title": "Extract Document Text and Metadata"
+      },
+      null,
+      [
+        "doc",
+        "strict",
+        "ocr",
+        "lang",
+        "by_page"
+      ],
+      [
+        "ANY",
+        "BOOLEAN",
+        "BOOLEAN",
+        "VARCHAR",
+        "BOOLEAN"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22731,
+      [
+        "SELECT content, mime, n_pages FROM tika.main.extract_text('A short plain-text body.'::BLOB);",
+        "SELECT page, content FROM tika.main.extract_text('Single page body.'::BLOB, by_page := true);",
+        "SELECT meta['Content-Type'] AS ct FROM tika.main.extract_text('Some bytes.'::BLOB);"
+      ],
+      null,
+      [
+        "document",
+        "extraction",
+        "tika"
+      ]
+    ],
+    [
+      "tika",
+      "22592",
+      "main",
+      "metadata",
+      null,
+      "table",
+      "Extract document metadata (MIME, page count, language, full metadata MAP) without the body text, via Apache Tika.",
+      null,
+      {
+        "vgi.category": "Text & Metadata Extraction",
+        "vgi.doc_llm": "## metadata\n\nLike `extract_text`, but returns only a document's metadata \u2014 its MIME type, page count, language, and the full Tika metadata bag \u2014 without the (potentially large) body text. One row per call.\n\n**Input** \u2014 an `any`-typed `doc` argument: a `VARCHAR` path the worker opens or a `BLOB` of document bytes. `strict := true` re-raises parse errors instead of capturing them in the `error` column.\n\n**Output** \u2014 a single row with `mime`, `n_pages`, `lang`, a `meta` `MAP(VARCHAR, VARCHAR)`, and an `error` column.\n\nUse it when you only need provenance/structural metadata (author, created date, content type, page count) and want to avoid the cost of extracting and transferring full text.",
+        "vgi.doc_md": "# metadata\n\nReturns a document's metadata without its body text.\n\n## Usage\n\nPass a path or bytes; read individual fields from the `meta` `MAP` (e.g. `meta['Author']`, `meta['Content-Type']`).\n\n## Notes\n\n- Cheaper than `extract_text` when the body text is not needed.\n- Per-row error capture in the `error` column unless `strict := true`.\n- See the returned-columns table below for the exact output shape.",
+        "vgi.example_queries": "[{\"sql\":\"SELECT mime, n_pages, lang FROM tika.main.metadata('A short document body.'::BLOB);\",\"description\":\"Read a document's MIME type, page count, and language without extracting the body text.\"},{\"sql\":\"SELECT meta['Content-Type'] AS ct FROM tika.main.metadata('Some bytes.'::BLOB);\",\"description\":\"Read a single metadata field from the `meta` MAP.\"}]",
+        "vgi.keywords": "[\"metadata\",\"document metadata\",\"mime\",\"page count\",\"language\",\"author\",\"properties\",\"tika\",\"meta map\",\"content-type\"]",
+        "vgi.result_columns_schema": "[\n  {\"name\": \"mime\", \"type\": \"VARCHAR\", \"description\": \"Detected media type, e.g. application/pdf.\"},\n  {\"name\": \"n_pages\", \"type\": \"INTEGER\", \"description\": \"Page/slide/sheet count when the format reports it, else NULL.\"},\n  {\"name\": \"lang\", \"type\": \"VARCHAR\", \"description\": \"Document language code if Tika reported one, else NULL.\"},\n  {\"name\": \"meta\", \"type\": \"MAP(VARCHAR, VARCHAR)\", \"description\": \"Full Tika metadata bag as a MAP(VARCHAR, VARCHAR).\"},\n  {\"name\": \"error\", \"type\": \"VARCHAR\", \"description\": \"Per-row parse error message, or NULL on success.\"}\n]",
+        "vgi.title": "Extract Document Metadata Only"
+      },
+      null,
+      [
+        "doc",
+        "strict"
+      ],
+      [
+        "ANY",
+        "BOOLEAN"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22732,
+      [
+        "SELECT mime, n_pages, lang FROM tika.main.metadata('A short document body.'::BLOB);",
+        "SELECT meta['Content-Type'] AS ct FROM tika.main.metadata('Some bytes.'::BLOB);"
+      ],
+      null,
+      [
+        "document",
+        "metadata",
+        "tika"
+      ]
+    ],
+    [
+      "tika",
+      "22592",
+      "main",
+      "extract_all",
+      null,
+      "table",
+      "Extract text + metadata for a whole column of documents (paths or bytes), with an id column passed through onto each output row.",
+      null,
+      {
+        "vgi.category": "Text & Metadata Extraction",
+        "vgi.doc_llm": "## extract_all\n\nA table-in-out function that runs `extract_text` over a whole column of documents at once. Stream a relation whose column holds either filesystem paths (`VARCHAR`) or document bytes (`BLOB`); the function emits one extract row per input row.\n\n**Input** \u2014 a table argument plus named options: `doc_column` selects the document column (defaults to the first non-id column); `id` names a passthrough column that is excluded from parsing and copied verbatim onto every output row so results join back to the source; `ocr` and `lang` control OCR as in `extract_text`.\n\n**Output** \u2014 the `extract_text` column set (`content`, `mime`, `n_pages`, `lang`, `meta`, `error`), optionally prefixed by the `id` passthrough column.\n\n**Error handling** \u2014 per-row: a failed document yields `NULL` content and an `error` message; the rest of the batch still processes. Use this to bulk-extract a corpus referenced by a SQL relation.",
+        "vgi.doc_md": "# extract_all\n\nBulk-extracts text and metadata for a column of documents, with an id passthrough.\n\n## Usage\n\nPass a subquery as the table argument; set `doc_column` to the path/bytes column and `id` to a key column copied onto each result row for joining back to the source.\n\n## Notes\n\n- Accepts a `VARCHAR` path column or a `BLOB` bytes column.\n- Per-row error capture (NULL `content` + `error`).\n- See the returned-columns table below for the exact output shape.",
+        "vgi.example_queries": "[{\"sql\":\"SELECT id, content, mime FROM tika.main.extract_all((SELECT * FROM (VALUES (1, 'First body.'::BLOB), (2, 'Second body.'::BLOB)) AS t(id, body)), id := 'id', doc_column := 'body');\",\"description\":\"Extract every document in an inline column of bytes, keeping the source `id` on each output row to join results back.\"},{\"sql\":\"SELECT id, content FROM tika.main.extract_all((SELECT * FROM (VALUES (1, 'Inline document bytes.'::BLOB)) AS t(id, body)), id := 'id', doc_column := 'body');\",\"description\":\"Extract from a BLOB column (`body`) of inline document bytes, with the `id` column passed through.\"}]",
+        "vgi.keywords": "[\"extract all\",\"bulk extract\",\"batch\",\"column of documents\",\"table function\",\"passthrough id\",\"corpus\",\"tika\",\"paths\",\"blobs\"]",
+        "vgi.result_dynamic_columns_md": "### Without id passthrough (`id := ''`)\n\n| name | type | description |\n|---|---|---|\n| `content` | VARCHAR | Extracted plain-text body of the document, or NULL on error. |\n| `mime` | VARCHAR | Detected media type, e.g. `application/pdf`. |\n| `n_pages` | INTEGER | Page/slide/sheet count when the format reports it, else NULL. |\n| `lang` | VARCHAR | Document language code if Tika reported one. |\n| `meta` | MAP(VARCHAR, VARCHAR) | Full Tika metadata bag. |\n| `error` | VARCHAR | Per-row parse error message, or NULL on success. |\n\n### With id passthrough (`id := '<column>'`)\n\n| name | type | description |\n|---|---|---|\n| `id` | INTEGER | Passthrough column named by the `id` argument (shown here as `id`), copied verbatim from each input row so results can be joined back. Its name and type mirror the chosen source column \u2014 INTEGER in these examples. |\n| `content` | VARCHAR | Extracted plain-text body of the document, or NULL on error. |\n| `mime` | VARCHAR | Detected media type, e.g. `application/pdf`. |\n| `n_pages` | INTEGER | Page/slide/sheet count when the format reports it, else NULL. |\n| `lang` | VARCHAR | Document language code if Tika reported one. |\n| `meta` | MAP(VARCHAR, VARCHAR) | Full Tika metadata bag. |\n| `error` | VARCHAR | Per-row parse error message, or NULL on success. |",
+        "vgi.title": "Extract All Documents in a Column"
+      },
+      null,
+      [
+        "input",
+        "lang",
+        "ocr",
+        "id",
+        "doc_column"
+      ],
+      [
+        "TABLE",
+        "VARCHAR",
+        "BOOLEAN",
+        "VARCHAR",
+        "VARCHAR"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22730,
+      [
+        "SELECT id, content, mime FROM tika.main.extract_all((SELECT * FROM (VALUES (1, 'First body.'::BLOB), (2, 'Second body.'::BLOB)) AS t(id, body)), id := 'id', doc_column := 'body');",
+        "SELECT id, content FROM tika.main.extract_all((SELECT * FROM (VALUES (1, 'Inline document bytes.'::BLOB)) AS t(id, body)), id := 'id', doc_column := 'body');"
+      ],
+      null,
+      [
+        "document",
+        "extraction",
+        "tika"
+      ]
+    ],
+    [
+      "tika",
+      "22592",
+      "main",
+      "detect_lang",
+      null,
+      "scalar",
+      "Detect the ISO-639 language code of a piece of text (Apache Tika language detection).",
+      null,
+      {
+        "vgi.category": "Content Detection",
+        "vgi.doc_llm": "## detect_lang\n\nIdentify the dominant natural language of a piece of text and return its ISO-639 code (e.g. `en`, `fr`, `de`), using Apache Tika's Optimaize n-gram language detector.\n\n**Input** \u2014 a `VARCHAR` of text (often the `content` column produced by `extract_text`).\n\n**Output** \u2014 a short ISO-639 language code, or `NULL` when the input is `NULL`/blank or no language can be detected confidently.\n\nPair it with `detect_lang_conf` to threshold on detection confidence. Detection is most reliable on at least a sentence or two of text; very short strings may return `NULL`.",
+        "vgi.doc_md": "# detect_lang\n\nReturns the ISO-639 language code of a text string.\n\n## Usage\n\nFeed it any `VARCHAR` text \u2014 typically extracted document bodies \u2014 to tag rows by language for filtering or routing.\n\n## Notes\n\n- Returns `NULL` for `NULL`, blank, or low-confidence input.\n- Backed by the Optimaize models bundled with Tika; accuracy improves with longer text.\n- Use `detect_lang_conf` for the matching confidence score.",
+        "vgi.example_queries": "[{\"sql\":\"SELECT tika.main.detect_lang('The quick brown fox jumps over the lazy dog.');\",\"description\":\"Detect the ISO-639 language code of a piece of text (returns 'en' here).\"},{\"sql\":\"SELECT content, tika.main.detect_lang(content) AS lang FROM tika.main.extract_text('Bonjour le monde, ceci est un texte en francais.'::BLOB);\",\"description\":\"Detect the language of an extracted document's body text.\"}]",
+        "vgi.keywords": "[\"language\",\"detect language\",\"language detection\",\"iso-639\",\"locale\",\"language code\",\"optimaize\",\"nlp\"]",
+        "vgi.title": "Detect Text Language Code"
+      },
+      "VARCHAR",
+      [
+        "text"
+      ],
+      [
+        "VARCHAR"
+      ],
+      null,
+      null,
+      false,
+      true,
+      null,
+      22726,
+      [
+        "SELECT tika.main.detect_lang('The quick brown fox jumps over the lazy dog.');",
+        "SELECT content, tika.main.detect_lang(content) AS lang FROM tika.main.extract_text('Bonjour le monde, ceci est un texte en francais.'::BLOB);"
+      ],
+      "CONSISTENT",
+      [
+        "text",
+        "detection",
+        "tika"
+      ]
+    ],
+    [
+      "tika",
+      "22592",
+      "main",
+      "detect_mime",
+      null,
+      "scalar",
+      "Detect a document's MIME type from its bytes or a file path (Apache Tika).",
+      null,
+      {
+        "vgi.category": "Content Detection",
+        "vgi.doc_llm": "## detect_mime\n\nSniff the media (MIME) type of a document using Apache Tika's container-aware detector, working from the document's magic bytes rather than its file extension.\n\n**Input** \u2014 a single `any`-typed argument resolved at runtime: a `BLOB` of the raw document bytes, or a `VARCHAR` filesystem path the worker opens.\n\n**Output** \u2014 a `VARCHAR` media type such as `application/pdf`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`, or `text/plain`; `NULL` for a `NULL` input.\n\nUse it to route, filter, or validate documents by type before calling the heavier `extract_text` / `metadata` table functions.",
+        "vgi.doc_md": "# detect_mime\n\nReturns the detected media type of a document as a `VARCHAR`.\n\n## Usage\n\nPass either a `BLOB` of document bytes or a `VARCHAR` file path; detection is content-based (Tika reads the leading bytes), so it does not rely on the file name.\n\n## Notes\n\n- Returns `NULL` for a `NULL` input.\n- Office formats are correctly disambiguated by inspecting the OOXML/ODF container, not just the ZIP signature.",
+        "vgi.example_queries": "[{\"sql\":\"SELECT tika.main.detect_mime('Hello, plain text body.'::BLOB);\",\"description\":\"Detect the MIME type of inline document bytes (returns 'text/plain').\"},{\"sql\":\"SELECT tika.main.detect_mime('/docs/report.pdf');\",\"description\":\"Detect the MIME type of a document from its file path (returns e.g. 'application/pdf').\"}]",
+        "vgi.keywords": "[\"mime\",\"media type\",\"content type\",\"detect mime\",\"file type\",\"magic bytes\",\"sniff\",\"content-type\",\"tika detect\"]",
+        "vgi.title": "Detect Document MIME Type"
+      },
+      "VARCHAR",
+      [
+        "doc"
+      ],
+      [
+        "ANY"
+      ],
+      null,
+      null,
+      false,
+      true,
+      null,
+      22728,
+      [
+        "SELECT tika.main.detect_mime('Hello, plain text body.'::BLOB);",
+        "SELECT tika.main.detect_mime('/docs/report.pdf');"
+      ],
+      "CONSISTENT",
+      [
+        "document",
+        "detection",
+        "tika"
+      ]
+    ],
+    [
+      "tika",
+      "22592",
+      "main",
+      "ocr",
+      null,
+      "scalar",
+      "OCR an image or scanned PDF (bytes or path) via Tika's Tesseract parser; returns NULL when Tesseract is unavailable.",
+      null,
+      {
+        "vgi.category": "Optical Character Recognition",
+        "vgi.doc_llm": "## ocr\n\nRun optical character recognition over an image or a scanned PDF using Apache Tika's Tesseract parser, returning the recognized text.\n\n**Input** \u2014 an `any`-typed document argument (`BLOB` bytes or `VARCHAR` path) plus an optional `lang` setting. `lang` is a `+`-joined list of Tesseract trained-data languages, e.g. `'eng'` (default) or `'eng+deu'`.\n\n**Output** \u2014 a `VARCHAR` of the OCR'd text.\n\n**Important** \u2014 OCR requires the system `tesseract` binary on `PATH`. When it is absent the function returns `NULL` for every row instead of failing the query, so pipelines stay resilient. Use this for image-only documents where `extract_text` returns little or no text.",
+        "vgi.doc_md": "# ocr\n\nReturns text recognized from an image or scanned PDF as a `VARCHAR`.\n\n## Usage\n\nPass image bytes or a path; optionally set `lang` to a `+`-joined trained-data list (`'eng+deu'`) to recognize multiple scripts.\n\n## Notes\n\n- Requires the `tesseract` system binary; returns `NULL` when it is not installed rather than raising.\n- Returns `NULL` for a `NULL` input.\n- For born-digital documents prefer `extract_text`; reach for `ocr` when the content is rasterized.",
+        "vgi.example_queries": "[{\"sql\":\"SELECT tika.main.ocr('/docs/scan.png');\",\"description\":\"OCR an image file with the default English model (NULL if Tesseract is not installed).\"},{\"sql\":\"SELECT tika.main.ocr('/docs/scan.png'::BLOB);\",\"description\":\"OCR image bytes (a BLOB) instead of a path (NULL if Tesseract is not installed).\"}]",
+        "vgi.keywords": "[\"ocr\",\"tesseract\",\"optical character recognition\",\"scanned\",\"image text\",\"scan\",\"recognize text\",\"image to text\"]",
+        "vgi.title": "OCR Image or Scanned PDF"
+      },
+      "VARCHAR",
+      [
+        "doc"
+      ],
+      [
+        "ANY"
+      ],
+      null,
+      null,
+      false,
+      true,
+      null,
+      22729,
+      [
+        "SELECT tika.main.ocr('/docs/scan.png');",
+        "SELECT tika.main.ocr('/docs/scan.png'::BLOB);"
+      ],
+      "CONSISTENT",
+      [
+        "document",
+        "ocr",
+        "tika"
+      ]
+    ],
+    [
+      "tika",
+      "22592",
+      "main",
+      "detect_lang_conf",
+      null,
+      "scalar",
+      "Confidence (0.0-1.0) of the top detected language for a piece of text (Apache Tika language detection); the companion score to detect_lang.",
+      null,
+      {
+        "vgi.category": "Content Detection",
+        "vgi.doc_llm": "## detect_lang_conf\n\nReturn the detector's confidence in the top language it found for a piece of text, as a continuous score in `0.0`\u2013`1.0`. This is the companion to `detect_lang`: that function gives the ISO-639 code, this one gives how sure the model is.\n\n**Input** \u2014 a `VARCHAR` of text.\n\n**Output** \u2014 a `DOUBLE` raw probability (`0.0`\u2013`1.0`), or `NULL` when the input is `NULL`/blank or no language is detected (mirroring `detect_lang`'s `NULL`).\n\nTika exposes language confidence as a coarse `NONE`/`LOW`/`MEDIUM`/`HIGH` enum; this function surfaces the underlying raw score so callers can apply their own threshold (e.g. keep rows where confidence `> 0.5`).",
+        "vgi.doc_md": "# detect_lang_conf\n\nReturns the confidence (`0.0`\u2013`1.0`) of the top detected language as a `DOUBLE`.\n\n## Usage\n\nRun it alongside `detect_lang` to keep only high-confidence language tags, or to rank ambiguous rows.\n\n## Notes\n\n- Returns `NULL` for `NULL`, blank, or undetected input.\n- The score is the model's raw probability, not Tika's coarse enum.\n- Longer text yields more reliable confidence.",
+        "vgi.example_queries": "[{\"sql\":\"SELECT tika.main.detect_lang_conf('The quick brown fox jumps over the lazy dog.');\",\"description\":\"Confidence (0.0-1.0) of the top detected language for a piece of text.\"},{\"sql\":\"SELECT tika.main.detect_lang(content) AS lang, tika.main.detect_lang_conf(content) AS conf FROM tika.main.extract_text('The annual report covers quarterly results.'::BLOB);\",\"description\":\"Report the detected language and its confidence for an extracted document body.\"}]",
+        "vgi.keywords": "[\"language confidence\",\"language score\",\"detect language\",\"confidence\",\"probability\",\"iso-639\",\"language detection\",\"threshold\"]",
+        "vgi.title": "Detect Text Language Confidence"
+      },
+      "DOUBLE",
+      [
+        "text"
+      ],
+      [
+        "VARCHAR"
+      ],
+      null,
+      null,
+      false,
+      true,
+      null,
+      22727,
+      [
+        "SELECT tika.main.detect_lang_conf('The quick brown fox jumps over the lazy dog.');",
+        "SELECT tika.main.detect_lang(content) AS lang, tika.main.detect_lang_conf(content) AS conf FROM tika.main.extract_text('The annual report covers quarterly results.'::BLOB);"
+      ],
+      "CONSISTENT",
+      [
+        "text",
+        "detection",
+        "tika"
+      ]
+    ]
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "repository": "Query-farm/vgi-tika",
+  "release_tag": "v0.4.0",
+  "release_revision": "c052ab54a8248e4f2191103f032e26f0180422a4",
+  "current_public_revision": "42200ea9c005f1acd46ca8d9a295f543268431ac",
+  "engine": "Haybarn 2.0.0rc11 / VGI e75482339d",
+  "released_launch": "uv run --frozen --script tika_release.py v0.4.0",
+  "comparison": "Complete public builder registration at 42200ea9c005f1acd46ca8d9a295f543268431ac exposes 7 functions and no tables/views. Names and signatures match the actual released catalog. Complete release-to-current source diff adds composed example metadata only; compute, registration and runtime dependencies unchanged. Current-interface review is separate from exact runtime execution, which uses released v0.4.0 only.",
+  "data_isolation": "Empty temporary SQL-secret storage; persistent disabled. Authored PDF/DOCX/HTML/plaintext/corrupt/missing/NULL controls, synthetic raster card and inline authored multilingual sentences. Managed Java 21.0.8 plus external Tesseract 5.5.4/English model; no account, private document or remote OCR service.",
+  "captured_at": "2026-11-14T21:45:54.606362+00:00"
+}

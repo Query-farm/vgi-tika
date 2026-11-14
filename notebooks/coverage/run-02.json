@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "notebook_sha256": "a87b08615a8761a06f7f27cf1be411cd941444485993257100a8ee66a72e2bdd",
+  "catalog_sha256": "348c4515600b3d5bef70d8fa4cc7465d53590f69ccde6aa53f3da92587466ee9",
+  "worker_revision": "v0.4.0",
+  "status": "success",
+  "executed_at": "2026-11-14T21:45:24.722147+00:00",
+  "engine": "Haybarn 2.0.0rc11 / VGI e75482339d",
+  "command": "uv run --locked --extra runner vgi-notebooks 02_recover_text_before_trusting_language.ipynb",
+  "catalog_aliases": [
+    "tika"
+  ],
+  "cells": [
+    {
+      "id": "tika02-parameter",
+      "status": "success",
+      "execution_count": 1,
+      "source_sha256": "c0be3fd071e4411e248d137fb964d5e96188b6dad548e6bb17b23122de3cb5db",
+      "outputs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "id": "tika02-install",
+      "status": "success",
+      "execution_count": 2,
+      "source_sha256": "e87d5b241e9167a1af7bc0f2d1bcec0b792b65321b5b95f34ed39d7f32e85dc8",
+      "outputs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "id": "tika02-native",
+      "status": "success",
+      "execution_count": 3,
+      "source_sha256": "cfdffa931bd3cf07cb483329d553f8b6b7379a904cd3ca7a14606c62e0e1a616",
+      "outputs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "id": "tika02-setup",
+      "status": "success",
+      "execution_count": 4,
+      "source_sha256": "cc693b69fcefc687f5957ab20a53347d6678a6f5e7d33d2084155f6eab581c51",
+      "outputs_sha256": "9345f423ade43c893261c297496fc391f7e758935b8cd1acd0302f235a86b521"
+    },
+    {
+      "id": "tika02-attach",
+      "status": "success",
+      "execution_count": 5,
+      "source_sha256": "2def1a410f002364a9f70cdacb58aa702f5c7d609bb1f57b00341dcb25c48cf9",
+      "outputs_sha256": "70585e78de1ef0e501912e523ee84717846cd34b9b988f8c0f0622910b73a3e6"
+    },
+    {
+      "id": "tika02-preview",
+      "status": "success",
+      "execution_count": 6,
+      "source_sha256": "125f99e9ab9ec5df927a464a872542f5982d5f80da59533ca54a335d3076a514",
+      "outputs_sha256": "e16910c9fee073aabaea371126d8b496f45c4aaf38ade25f4d02aa92cb9a13b1"
+    },
+    {
+      "id": "tika02-ocr-sql",
+      "status": "success",
+      "execution_count": 7,
+      "source_sha256": "7a31f17bd6eb86e06894ddc2b0fb093d97f53fd744302b5762cb6920d6eaf6a6",
+      "outputs_sha256": "f2daf4caf0f79f73a0fcdcd97ad6f70b8a53bb0fd459a14a31f339b93753c929"
+    },
+    {
+      "id": "tika02-ocr-capture",
+      "status": "success",
+      "execution_count": 8,
+      "source_sha256": "4368df27ed7f497c7b0fce04633c0eb345775cebd15344b7a64544c27e3605fa",
+      "outputs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "id": "tika02-ocr-result",
+      "status": "success",
+      "execution_count": 9,
+      "source_sha256": "1fb2a530e38b82e4a72d7d13213ddd333c65a92b8bb3af7d4b5d5a8e85606705",
+      "outputs_sha256": "209ac64f5d160c607f9cfa9015ab12c13e729749fe7df2242dbdfcea26e24f24"
+    },
+    {
+      "id": "tika02-language-sql",
+      "status": "success",
+      "execution_count": 10,
+      "source_sha256": "d18d4c2f41afc9df1df7be633571f182f4a878eda6c1ba1bf1e1060c5c03a2a4",
+      "outputs_sha256": "5bd2e32b8da421423a3de9177c238d6e1764ee417af110c4bd906f33b3869ac9"
+    },
+    {
+      "id": "tika02-routing-capture",
+      "status": "success",
+      "execution_count": 11,
+      "source_sha256": "c63a8fb278c39486aca7fc63a445fa032627c4b7cac838b3d31ed8be3b3e4c7a",
+      "outputs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "id": "tika02-routing-result",
+      "status": "success",
+      "execution_count": 12,
+      "source_sha256": "3e6c95cf22edb37daf720014a4b72709cef78b429841d73d1977df56af1d37bf",
+      "outputs_sha256": "6015a72548d3d6b3447f590963b6dae490928d21e039e2fac7c5155e34aa30b9"
+    },
+    {
+      "id": "tika02-checks",
+      "status": "success",
+      "execution_count": 13,
+      "source_sha256": "d3aca3c2fa1964969ec739b74f584b83332910747eb9e9b38cb69efee85518f0",
+      "outputs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "id": "tika02-check-result",
+      "status": "success",
+      "execution_count": 14,
+      "source_sha256": "f2d0a6e7d1a1a1fbc40a3678bd9380586a1a310e03b4cc155a29f720af311c38",
+      "outputs_sha256": "def1d4733cc12246e8670ba88fecc44e84c6446ca4b58dec4910d7c4f86f3d6b"
+    },
+    {
+      "id": "tika02-close",
+      "status": "success",
+      "execution_count": 15,
+      "source_sha256": "253dd6f37aa50e657f869d6ba37c2ec4a5b80fcdcb8f313c72b297ad1565dd86",
+      "outputs_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  ]
+}

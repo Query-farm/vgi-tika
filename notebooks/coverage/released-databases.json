@@ -1,0 +1,46 @@
+{
+  "query": "SELECT * FROM duckdb_databases() WHERE database_name='tika'",
+  "columns": [
+    "database_name",
+    "database_oid",
+    "path",
+    "comment",
+    "tags",
+    "internal",
+    "type",
+    "readonly",
+    "encrypted",
+    "cipher",
+    "options"
+  ],
+  "rows": [
+    [
+      "tika",
+      22592,
+      null,
+      "Document text, metadata, and OCR extraction (Apache Tika)",
+      {
+        "vgi.agent_test_tasks": "[\n  {\"name\": \"detect_document_mime\",\n   \"prompt\": \"I have a document whose raw bytes are the text 'Hello, this is a plain-text document body.'. What media (MIME) type does this worker detect for it? Return a single row with one column named mime.\"},\n  {\"name\": \"detect_text_language\",\n   \"prompt\": \"Detect the natural language of this sentence: 'The quick brown fox jumps over the lazy dog while the sun sets slowly behind the distant hills.'. Return a single row with one column named lang holding the detected language code.\"},\n  {\"name\": \"language_confidence_score\",\n   \"prompt\": \"For the sentence 'The quick brown fox jumps over the lazy dog while the sun sets slowly behind the distant hills.', how confident is the language detector in its top guess? Return the raw confidence score, unrounded, as a single row with one column named confidence.\"},\n  {\"name\": \"extract_document_media_type\",\n   \"prompt\": \"Using the single-document extraction, return the detected media type of a document whose raw bytes are 'A short quarterly report body.'. Return a single row with one column named mime.\"},\n  {\"name\": \"metadata_media_type\",\n   \"prompt\": \"Using the metadata-only function (no body text), return the detected media type of a document whose raw bytes are 'A brief internal memo.'. Return a single row with one column named mime.\"},\n  {\"name\": \"batch_extract_media_types\",\n   \"prompt\": \"I have a small table of two documents: id 1 with raw bytes 'alpha document body' and id 2 with raw bytes 'beta document body'. Process them all at once and return each document's id together with its detected media type, ordered by id ascending. Return two columns named id and mime.\"},\n  {\"name\": \"ocr_when_no_text_layer\",\n   \"prompt\": \"Run optical character recognition over a tiny input whose raw bytes are 'x' (there is no real image, so OCR yields no recognizable characters). Return a single row with one column named text holding whatever OCR produces.\"}\n]",
+        "vgi.author": "Query.Farm",
+        "vgi.copyright": "Copyright 2026 Query Farm LLC - https://query.farm",
+        "vgi.doc_llm": "Extract searchable plain text, rich document metadata, detected language, page counts, and OCR output from binary documents \u2014 PDF, Word, PowerPoint, Excel, HTML, email, RTF, OpenDocument, and image formats \u2014 directly inside DuckDB SQL, powered by Apache Tika. Each call takes either a filesystem path (the worker opens and reads the file) or a `BLOB` of the raw document bytes; the media type is auto-detected, so one call handles dozens of formats. Reach for this worker when you need to mine unstructured documents from SQL \u2014 full-text and vector indexing for search or RAG, media-type routing, language filtering, or joining extracted content and metadata against the rest of your warehouse \u2014 without standing up an external extraction service. Scanned pages and images are run through Tesseract OCR when the binary is available, and parse failures surface per row rather than aborting the query. The worker's functions are grouped into navigable categories for text and metadata extraction, content detection, and optical character recognition.",
+        "vgi.doc_md": "# Apache Tika Document & OCR Text Extraction in SQL\n\n![Apache Tika logo](https://upload.wikimedia.org/wikipedia/commons/7/74/Apache_Tika_Logo.svg)\n\nExtract plain text, document metadata, language, page counts, and OCR directly in DuckDB SQL from PDF, Word, Excel, PowerPoint, HTML, email, and image files \u2014 powered by [Apache Tika](https://tika.apache.org/) ([source](https://github.com/apache/tika)).\n\n## What it does\n\nThe **tika** extension turns DuckDB into a document-parsing engine: point it at a file path or a `BLOB` of document bytes and get back searchable plain text plus a rich metadata map, all without leaving SQL. It is built for data engineers, analysts, and AI/RAG pipelines that need to mine unstructured documents \u2014 contracts, invoices, reports, slide decks, spreadsheets, web pages, and scanned images \u2014 and join the extracted content against the rest of their warehouse. Because it runs as a VGI worker over Apache Arrow, extraction happens close to your data with no external service calls and no manual file shuffling.\n\n## How it works\n\nEvery function is backed by [Apache Tika](https://tika.apache.org/), the battle-tested Apache content-detection and analysis toolkit that ships more than a thousand parsers (PDFBox for PDF, Apache POI for Microsoft Office, and many more). Tika auto-detects each document's media type and dispatches it to the right parser, so a single call handles dozens of formats. Scanned PDFs and images are run through [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) when the Tesseract binary is available; when it is not, OCR results return `NULL` rather than failing the query. See the official [Apache Tika documentation](https://cwiki.apache.org/confluence/display/TIKA) for the full parser and metadata catalog.\n\n## When to use it\n\nReach for this worker whenever unstructured documents need to become queryable rows: building a full-text or vector index over a document store, routing or filtering files by their true media type, detecting the language of a body of text, or pulling structured metadata (author, title, creation date, page count) out of office and PDF files. Inputs are always either a `VARCHAR` filesystem path the worker opens or a `BLOB` of the raw document bytes, so documents already living in a table column can be processed in place without shuffling files around.\n\n## Navigating the functions\n\nThe worker's functions are organized into navigable categories \u2014 text and metadata extraction (single-document and whole-column batch), content detection (media type and language), and optical character recognition \u2014 each carrying its own runnable examples and documented return columns.",
+        "vgi.keywords": "[\"tika\",\"document extraction\",\"text extraction\",\"metadata\",\"ocr\",\"mime\",\"language detection\",\"pdf\",\"docx\",\"pptx\",\"xlsx\",\"html\",\"email\",\"rtf\",\"odf\",\"tesseract\"]",
+        "vgi.license": "MIT",
+        "vgi.subtitle": "Pull text and metadata out of PDFs, Office files and other documents, detect their type and language, and OCR scanned images.",
+        "vgi.support_contact": "https://github.com/Query-farm/vgi-tika/issues",
+        "vgi.support_policy_url": "https://github.com/Query-farm/vgi-tika/blob/main/README.md",
+        "vgi.title": "Apache Tika Document Extraction",
+        "vgi_resolved_implementation_version": "unknown"
+      },
+      false,
+      "vgi",
+      false,
+      false,
+      null,
+      {
+        "location": "uv run --frozen --script tika_release.py v0.4.0"
+      }
+    ]
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "repository": "Query-farm/vgi-tika",
+  "revision": "v0.4.0",
+  "captured_at": "2026-11-14T21:45:54.606362+00:00",
+  "default_schema": "main",
+  "scope": "all_public_functions_and_tables",
+  "complete": true,
+  "evidence": [
+    {
+      "path": "coverage/catalog-provenance.json",
+      "sha256": "ace451faf8dc0aa3fccfb63df8339457c07d2577e073e165d748fcbc92190157",
+      "description": "Runtime/source identities and scope of compatibility review."
+    },
+    {
+      "path": "coverage/released-functions.json",
+      "sha256": "36499e9ec940164362fd0716c7513f805f0b5b07584ce97fdedaffb4da45f158",
+      "description": "Complete actual worker-filtered duckdb_functions() export; empty table/view inventories retained."
+    },
+    {
+      "path": "coverage/released-tables.json",
+      "sha256": "828204f2b7837404d4aa4fe29df70d23ffc418f95bb6a6e4a29b6438ec6ac1f7",
+      "description": "Complete actual worker-filtered duckdb_tables() export; empty table/view inventories retained."
+    },
+    {
+      "path": "coverage/released-views.json",
+      "sha256": "d924cf6922a14023ae984a36bd506521a43488eff59425560dd30e81178760be",
+      "description": "Complete actual worker-filtered duckdb_views() export; empty table/view inventories retained."
+    },
+    {
+      "path": "coverage/released-databases.json",
+      "sha256": "1bd4b353f068263d3fa176a610e829457f06ae00f123e2f6e7ff786b8eb4b585",
+      "description": "Actual catalog title/subtitle/metadata."
+    }
+  ],
+  "objects": [
+    {
+      "schema": "main",
+      "name": "extract_text",
+      "kind": "function",
+      "signatures": [
+        "extract_text(ANY, BOOLEAN, BOOLEAN, VARCHAR, BOOLEAN) -> TABLE"
+      ],
+      "authentication": "none",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "metadata",
+      "kind": "function",
+      "signatures": [
+        "metadata(ANY, BOOLEAN) -> TABLE"
+      ],
+      "authentication": "none",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "extract_all",
+      "kind": "function",
+      "signatures": [
+        "extract_all(TABLE, VARCHAR, BOOLEAN, VARCHAR, VARCHAR) -> TABLE"
+      ],
+      "authentication": "none",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "detect_lang",
+      "kind": "function",
+      "signatures": [
+        "detect_lang(VARCHAR) -> VARCHAR"
+      ],
+      "authentication": "none",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "detect_mime",
+      "kind": "function",
+      "signatures": [
+        "detect_mime(ANY) -> VARCHAR"
+      ],
+      "authentication": "none",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "ocr",
+      "kind": "function",
+      "signatures": [
+        "ocr(ANY) -> VARCHAR"
+      ],
+      "authentication": "none",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "detect_lang_conf",
+      "kind": "function",
+      "signatures": [
+        "detect_lang_conf(VARCHAR) -> DOUBLE"
+      ],
+      "authentication": "none",
+      "access": "read"
+    }
+  ]
+}
