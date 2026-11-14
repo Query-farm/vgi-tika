@@ -1,0 +1,41 @@
+{
+  "provenance": "Authored synthetic raster text; no camera, real document, or downloaded image.",
+  "generator": "build_scan.py; Pillow text using Matplotlib DejaVu Sans 48px on white RGB canvas",
+  "dimensions_pixels": [
+    1800,
+    500
+  ],
+  "expected_lines": [
+    "LIBRARY RETURN CHECKLIST",
+    "Return the blue field guide by Friday.",
+    "Keep the receipt inside the book.",
+    "Call the library if the cover is damaged."
+  ],
+  "expected_tokens": [
+    "library",
+    "return",
+    "checklist",
+    "return",
+    "the",
+    "blue",
+    "field",
+    "guide",
+    "by",
+    "friday.",
+    "keep",
+    "the",
+    "receipt",
+    "inside",
+    "the",
+    "book.",
+    "call",
+    "the",
+    "library",
+    "if",
+    "the",
+    "cover",
+    "is",
+    "damaged."
+  ],
+  "sha256": "c8d4c5f6ec262029c19aad1bbba3d8895678e6869a430cc813e1ac6351c62df7"
+}

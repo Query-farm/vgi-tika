@@ -1,0 +1,18 @@
+version = 1
+revision = 3
+requires-python = ">=3.11, <3.15"
+
+[manifest]
+requirements = [{ name = "jdk4py", specifier = "==21.0.8.2" }]
+
+[[package]]
+name = "jdk4py"
+version = "21.0.8.2"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9b/91/faab5f5b2bdcaf74c20304c5c3a6a9e304a6c609a1d755e927c07a87f883/jdk4py-21.0.8.2-py3-none-macosx_10_9_x86_64.whl", hash = "sha256:7b2b397f2999e5a71728691477857a5a41215b3c95f6e8b15a4d53bc76203dff", size = 30900008, upload-time = "2026-04-10T20:50:45.913Z" },
+    { url = "https://files.pythonhosted.org/packages/e6/19/449f69b8706c2cb5fa46fdc3e75650983e44e4e025d6ade78580b2c8572d/jdk4py-21.0.8.2-py3-none-macosx_11_0_arm64.whl", hash = "sha256:0667b81b3ddc60157f773e0d05d00f4d46530f82bdc59e295b322b8d33f69417", size = 29692099, upload-time = "2026-04-10T20:50:37.405Z" },
+    { url = "https://files.pythonhosted.org/packages/9d/0c/24a7d8e4c96c3843b8163ba7a9be939b48fc181fb3263bd4fd9289ed8f41/jdk4py-21.0.8.2-py3-none-manylinux_2_17_aarch64.whl", hash = "sha256:2519dce230b3ed13a93a3efed15c6b8b163aeacd77859ddf59eef3faa69c635d", size = 33195566, upload-time = "2026-04-10T20:50:34.609Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/61/f3b5936908ff6de66c61aef69bf1074cb468fb883f5a0bb9e15e67a6b484/jdk4py-21.0.8.2-py3-none-manylinux_2_17_x86_64.whl", hash = "sha256:85addfcb57c7051dad6145b9f816fc519337e9a0c705ef01edc9dc7818ee0356", size = 33794570, upload-time = "2026-04-10T20:50:40.113Z" },
+    { url = "https://files.pythonhosted.org/packages/11/e3/87b83011678930770bf59b3f3fa5bd6c85f5e48941f1ef9e31cbfb62bee3/jdk4py-21.0.8.2-py3-none-win_amd64.whl", hash = "sha256:1c8e37d26315dfbb603503153d3dcdd90021fda71d64ab0b6309f06f83c0d503", size = 30329010, upload-time = "2026-04-10T20:50:42.783Z" },
+]
