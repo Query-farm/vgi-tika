@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "farm.query"
-version = "0.4.0"
+version = "0.4.1"
 
 repositories {
     // The VGI Java SDK is published to Maven Central as farm.query:vgi /

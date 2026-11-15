@@ -20,18 +20,22 @@ pipeline on DuckDB.
 
 ```sql
 INSTALL vgi FROM community; LOAD vgi;
-ATTACH 'tika' (TYPE vgi, LOCATION 'java -jar vgi-tika-v0.4.0.jar');
+ATTACH 'tika' (TYPE vgi, LOCATION 'java -jar vgi-tika-v0.4.1.jar');
 
--- one document -> one row of text + metadata
+-- one document -> one row of text + metadata (a sample PDF from this repo;
+-- extract_text('/path/to/report.pdf') reads a local file directly)
 SELECT content, meta['Content-Type'] AS mime, n_pages
-FROM tika.extract_text('/docs/report.pdf');
+FROM tika.extract_all((SELECT content FROM read_blob('https://raw.githubusercontent.com/Query-farm/vgi-tika/v0.4.0/test/sql/data/hello.pdf')));
 
--- a whole directory of files, joined back by path
-SELECT path, content
+-- a set of files, joined back by path (for a local directory use
+-- read_blob('/docs/**/*.pdf') or glob())
+SELECT parse_filename(path) AS file, content
 FROM tika.extract_all(
-  (SELECT file AS path, file AS doc FROM glob('/docs/**/*')
-   WHERE regexp_matches(file, '\.(pdf|docx|pptx)$')),
-  id := 'path', doc_column := 'doc');
+  (SELECT filename AS path, content AS doc
+   FROM read_blob(['https://raw.githubusercontent.com/Query-farm/vgi-tika/v0.4.0/test/sql/data/hello.pdf',
+                   'https://raw.githubusercontent.com/Query-farm/vgi-tika/v0.4.0/test/sql/data/hello.docx'])),
+  id := 'path', doc_column := 'doc')
+ORDER BY file;
 ```
 
 ## Quick start
@@ -39,7 +43,7 @@ FROM tika.extract_all(
 Every [GitHub release](https://github.com/Query-farm/vgi-tika/releases) ships a self-contained worker jar. It needs Java 21 or newer. Download it:
 
 ```sh
-curl -LO https://github.com/Query-farm/vgi-tika/releases/download/v0.4.0/vgi-tika-v0.4.0.jar
+curl -LO https://github.com/Query-farm/vgi-tika/releases/download/v0.4.1/vgi-tika-v0.4.1.jar
 ```
 
 then attach it from DuckDB (run from the directory holding the jar, or use its absolute path):
@@ -48,7 +52,7 @@ then attach it from DuckDB (run from the directory holding the jar, or use its a
 INSTALL vgi FROM community;
 LOAD vgi;
 
-ATTACH 'tika' AS tika (TYPE vgi, LOCATION 'java -jar vgi-tika-v0.4.0.jar');
+ATTACH 'tika' AS tika (TYPE vgi, LOCATION 'java -jar vgi-tika-v0.4.1.jar');
 
 -- Extract the plain-text body and detected media type from a single document.
 SELECT content, mime FROM tika.main.extract_text('A plain-text body.'::BLOB);
@@ -64,7 +68,7 @@ OCR (`tika.ocr`, and `extract_text(..., ocr := true)`) uses the system `tesserac
 - **Docker** (the image bundles the worker and a Java runtime):
 
   ```sql
-  ATTACH 'tika' AS tika (TYPE vgi, LOCATION 'docker://ghcr.io/query-farm/vgi-tika:0.4.0');
+  ATTACH 'tika' AS tika (TYPE vgi, LOCATION 'docker://ghcr.io/query-farm/vgi-tika:0.4.1');
   ```
 
 ### Build from source
@@ -114,9 +118,11 @@ metadata bag. Each capability maps to the VGI primitive that fits its data flow:
 prepends a `page INT` column. `extract_all` prepends the passthrough `id` column.
 
 ```sql
--- chunk a PDF into per-page rows ready for an embedding worker
+-- chunk a PDF into per-page rows ready for an embedding worker (a 3-page
+-- sample; pass a local path such as '/docs/contract.pdf' directly instead)
+SET VARIABLE doc = (SELECT content FROM read_blob('https://raw.githubusercontent.com/Query-farm/vgi-tika/v0.4.0/test/sql/data/multipage.pdf'));
 SELECT page, content
-FROM tika.extract_text('/docs/contract.pdf', by_page := true);
+FROM tika.extract_text(getvariable('doc'), by_page := true);
 
 -- pull author + creation date out of a column of stored bytes, keep the id
 SELECT id, meta['dc:creator'] AS author, meta['dcterms:created'] AS created
@@ -143,7 +149,8 @@ detect_lang_conf(text VARCHAR)  -> DOUBLE     -- confidence (0.0-1.0) of detect_
 
 ```sql
 SELECT tika.detect_mime(body) AS mime, count(*) FROM files GROUP BY 1;
-SELECT tika.detect_lang(content), tika.detect_lang_conf(content) FROM tika.extract_text('/docs/report.pdf');
+SELECT tika.detect_lang(content), tika.detect_lang_conf(content)
+FROM tika.extract_all((SELECT content FROM read_blob('https://raw.githubusercontent.com/Query-farm/vgi-tika/v0.4.0/test/sql/data/english.txt')));  -- en, ~1.0
 
 -- language breakdown of a stored corpus; low-confidence bodies count as 'und'
 SELECT CASE WHEN tika.detect_lang_conf(content) >= 0.5

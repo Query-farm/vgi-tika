@@ -47,9 +47,9 @@ public final class DetectMimeFunction extends ScalarFn {
                                 "Detect the MIME type of inline document bytes (returns 'text/plain').",
                                 null),
                         new FunctionExample(
-                                "SELECT tika.main.detect_mime('/docs/report.pdf');",
-                                "Detect the MIME type of a document from its file path "
-                                        + "(returns e.g. 'application/pdf').",
+                                "SELECT tika.main.detect_mime(content) FROM read_blob('" + Main.SAMPLE_PDF_URL + "');",
+                                "Detect the MIME type of a PDF read as bytes with read_blob() "
+                                        + "(returns 'application/pdf'); a local file path works the same.",
                                 null),
                         Main.HTML_INBOX_TRIAGE.asFunctionExample()))
                 .withTags(Meta.objectTags(
@@ -81,8 +81,8 @@ public final class DetectMimeFunction extends ScalarFn {
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
                         "SELECT tika.main.detect_mime('Hello, plain text body.'::BLOB);",
                         "Detect the MIME type of inline document bytes (returns 'text/plain').",
-                        "SELECT tika.main.detect_mime('/docs/report.pdf');",
-                        "Detect the MIME type of a document from its file path (returns e.g. 'application/pdf').",
+                        "SELECT tika.main.detect_mime(content) FROM read_blob('" + Main.SAMPLE_PDF_URL + "');",
+                        "Detect the MIME type of a PDF read as bytes with read_blob() (returns 'application/pdf'); a local file path works the same.",
                         Main.HTML_INBOX_TRIAGE.sql(), Main.HTML_INBOX_TRIAGE.description()));
     }
 

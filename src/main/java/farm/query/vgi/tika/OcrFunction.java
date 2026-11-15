@@ -35,6 +35,22 @@ public final class OcrFunction extends ScalarFn {
 
     @Override public String name() { return "ocr"; }
 
+    // Examples OCR a real scanned card fetched by URL, so they return text for
+    // a user anywhere (a local path like '/docs/scan.png' returns NULL outside
+    // the repo — VGI516/VGI913).
+    private static final String OCR_TEXT_SQL =
+            "SELECT tika.main.ocr(content) FROM read_blob('" + Main.SAMPLE_SCAN_URL + "');";
+    private static final String OCR_TEXT_DESC =
+            "OCR a scanned image read as bytes with read_blob(), using the default English model; "
+                    + "returns the card's text starting 'LIBRARY RETURN CHECKLIST' "
+                    + "(NULL if Tesseract is not installed).";
+    private static final String OCR_LINES_SQL =
+            "SELECT line FROM (SELECT unnest(string_split(tika.main.ocr(content), chr(10))) AS line "
+                    + "FROM read_blob('" + Main.SAMPLE_SCAN_URL + "')) WHERE trim(line) <> '';";
+    private static final String OCR_LINES_DESC =
+            "Split the OCR'd text of a scanned card into its non-blank lines, one row per line "
+                    + "(4 rows; no rows if Tesseract is not installed).";
+
     @Override public String description() {
         return "OCR an image or scanned PDF (bytes or path) via Tika's Tesseract parser; "
                 + "returns NULL when Tesseract is unavailable.";
@@ -45,16 +61,8 @@ public final class OcrFunction extends ScalarFn {
                 .withCategories("document", "ocr", "tika")
                 .withTag("vgi.category", "Optical Character Recognition")
                 .withExamples(List.of(
-                        new FunctionExample(
-                                "SELECT tika.main.ocr('/docs/scan.png');",
-                                "OCR an image file with the default English model "
-                                        + "(NULL if Tesseract is not installed).",
-                                null),
-                        new FunctionExample(
-                                "SELECT tika.main.ocr('/docs/scan.png'::BLOB);",
-                                "OCR image bytes (a BLOB) instead of a path "
-                                        + "(NULL if Tesseract is not installed).",
-                                null)))
+                        new FunctionExample(OCR_TEXT_SQL, OCR_TEXT_DESC, null),
+                        new FunctionExample(OCR_LINES_SQL, OCR_LINES_DESC, null)))
                 .withTags(Meta.objectTags(
                         "OCR Image or Scanned PDF",
                         "## ocr\n\n"
@@ -82,10 +90,8 @@ public final class OcrFunction extends ScalarFn {
                         "ocr", "tesseract", "optical character recognition", "scanned",
                         "image text", "scan", "recognize text", "image to text"))
                 .withTag("vgi.example_queries", Main.exampleQueriesTag(
-                        "SELECT tika.main.ocr('/docs/scan.png');",
-                        "OCR an image file with the default English model (NULL if Tesseract is not installed).",
-                        "SELECT tika.main.ocr('/docs/scan.png'::BLOB);",
-                        "OCR image bytes (a BLOB) instead of a path (NULL if Tesseract is not installed)."));
+                        OCR_TEXT_SQL, OCR_TEXT_DESC,
+                        OCR_LINES_SQL, OCR_LINES_DESC));
     }
 
     @Override protected ArrowType outputType(Schema inputSchema, Arguments args) {

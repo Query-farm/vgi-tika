@@ -65,6 +65,22 @@ public final class Main {
     }
 
     /**
+     * A small text PDF committed to this repo, served from GitHub at the v0.4.0
+     * release tag so examples that read it work for a user anywhere.
+     */
+    static final String SAMPLE_PDF_URL =
+            "https://raw.githubusercontent.com/Query-farm/vgi-tika/v0.4.0/test/sql/data/hello.pdf";
+
+    /**
+     * A synthetic scanned card (an image with four lines of text) committed to
+     * this repo. No release tag contains an image yet, so it is pinned to the
+     * immutable commit that added it.
+     */
+    static final String SAMPLE_SCAN_URL =
+            "https://raw.githubusercontent.com/Query-farm/vgi-tika/"
+                    + "fbe9bce2524010aa5b0ec8f4456c05f4082fa1b5/notebooks/assets/scan-card.png";
+
+    /**
      * An example query defined once and referenced from every list it appears in
      * (the schema-level {@code vgi.example_queries}, and each participating
      * function's {@code withExamples} list and {@code vgi.example_queries} tag).
