@@ -20,7 +20,7 @@ pipeline on DuckDB.
 
 ```sql
 INSTALL vgi FROM community; LOAD vgi;
-ATTACH 'tika' (TYPE vgi, LOCATION 'java -jar vgi-tika-v0.4.1.jar');
+ATTACH 'tika' (TYPE vgi, LOCATION 'java -jar vgi-tika-v0.4.2.jar');
 
 -- one document -> one row of text + metadata (a sample PDF from this repo;
 -- extract_text('/path/to/report.pdf') reads a local file directly)
@@ -43,7 +43,7 @@ ORDER BY file;
 Every [GitHub release](https://github.com/Query-farm/vgi-tika/releases) ships a self-contained worker jar. It needs Java 21 or newer. Download it:
 
 ```sh
-curl -LO https://github.com/Query-farm/vgi-tika/releases/download/v0.4.1/vgi-tika-v0.4.1.jar
+curl -LO https://github.com/Query-farm/vgi-tika/releases/download/v0.4.2/vgi-tika-v0.4.2.jar
 ```
 
 then attach it from DuckDB (run from the directory holding the jar, or use its absolute path):
@@ -52,7 +52,7 @@ then attach it from DuckDB (run from the directory holding the jar, or use its a
 INSTALL vgi FROM community;
 LOAD vgi;
 
-ATTACH 'tika' AS tika (TYPE vgi, LOCATION 'java -jar vgi-tika-v0.4.1.jar');
+ATTACH 'tika' AS tika (TYPE vgi, LOCATION 'java -jar vgi-tika-v0.4.2.jar');
 
 -- Extract the plain-text body and detected media type from a single document.
 SELECT content, mime FROM tika.main.extract_text('A plain-text body.'::BLOB);
