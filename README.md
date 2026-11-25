@@ -20,7 +20,7 @@ pipeline on DuckDB.
 
 ```sql
 INSTALL vgi FROM community; LOAD vgi;
-ATTACH 'tika' (TYPE vgi, LOCATION 'java -jar vgi-tika-v0.4.2.jar');
+ATTACH 'tika' (TYPE vgi, LOCATION 'java -jar vgi-tika-v0.5.0.jar');
 
 -- one document -> one row of text + metadata (a sample PDF from this repo;
 -- extract_text('/path/to/report.pdf') reads a local file directly)
@@ -43,8 +43,10 @@ ORDER BY file;
 Every [GitHub release](https://github.com/Query-farm/vgi-tika/releases) ships a self-contained worker jar. It needs Java 21 or newer. Download it:
 
 ```sh
-curl -LO https://github.com/Query-farm/vgi-tika/releases/download/v0.4.2/vgi-tika-v0.4.2.jar
+curl -LO https://github.com/Query-farm/vgi-tika/releases/download/v0.5.0/vgi-tika-v0.5.0.jar
 ```
+
+Requires Haybarn 2.0.1 or newer (vgi-tika 0.5.0 speaks VGI protocol 3.4; older Haybarn builds load a 3.3 `vgi` extension that cannot attach it).
 
 then attach it from DuckDB (run from the directory holding the jar, or use its absolute path):
 
@@ -52,7 +54,7 @@ then attach it from DuckDB (run from the directory holding the jar, or use its a
 INSTALL vgi FROM community;
 LOAD vgi;
 
-ATTACH 'tika' AS tika (TYPE vgi, LOCATION 'java -jar vgi-tika-v0.4.2.jar');
+ATTACH 'tika' AS tika (TYPE vgi, LOCATION 'java -jar vgi-tika-v0.5.0.jar');
 
 -- Extract the plain-text body and detected media type from a single document.
 SELECT content, mime FROM tika.main.extract_text('A plain-text body.'::BLOB);
@@ -240,7 +242,7 @@ make test-sql    # fat JAR + regenerate fixtures + haybarn-unittest over test/sq
 
 The SQL E2E suite (`test/sql/*.test`) runs the real functions inside DuckDB via
 [`haybarn-unittest`](https://pypi.org/project/haybarn-unittest/) with the fat JAR
-as the VGI `LOCATION`. Install the runner (haybarn **2.0**; this worker speaks VGI protocol `vgi.v3` / 3.3) once with `uv tool install --prerelease allow 'haybarn-unittest>=2.0.0rc11,<2.1'`
+as the VGI `LOCATION`. Install the runner (haybarn **2.0**; this worker speaks VGI protocol `vgi.v3` / 3.3) once with `uv tool install --prerelease allow 'haybarn-unittest>=2.0.1rc3,<2.1'`
 and put `~/.local/bin` on `PATH`. Fixtures under `test/sql/data/` (a known-text PDF,
 a 3-page PDF, a DOCX, an English text sample, and a corrupt PDF) are reproducible
 from the JUnit PDFBox/POI builders via `make fixtures` (Gradle `generateSqlFixtures`).
