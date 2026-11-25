@@ -57,14 +57,14 @@ Makefile                     build / fixtures / test-unit / test-sql / test / cl
 
 ## SDK dependency & CI (self-contained via Maven Central)
 
-The worker depends on the VGI Java SDK `farm.query:vgi:0.48.0` (the worker/catalog
-API; pulls in `farm.query:vgirpc` transitively, pinned to 0.33.3 — declared explicitly since
+The worker depends on the VGI Java SDK `farm.query:vgi:0.50.2` (the worker/catalog
+API; pulls in `farm.query:vgirpc` transitively, pinned to 0.34.1 — declared explicitly since
 the code imports `farm.query.vgirpc.*`). **It's on Maven Central**, so the build
 is fully self-contained: no sibling checkout, no `mavenLocal`, no composite build.
 `.github/workflows/test.yml` is a single `build-and-test` job that resolves from
 Central, runs JUnit + shadowJar + an HTTP boot smoke test + `make test-sql`.
 
-**Protocol:** vgi 0.48.0 speaks VGI protocol `vgi.v3` / 3.3.0, which only the
+**Protocol:** vgi 0.50.2 speaks VGI protocol `vgi.v3` / 3.4.0, which only the
 haybarn **2.0** community `vgi` extension attaches (haybarn 1.5 rejects it).
 `haybarn-unittest` 2.0 isolates `$HOME`, so `ci/run-integration.sh` and
 `make test-sql` pass `--keep-home` (otherwise the installed `vgi` extension is
@@ -96,7 +96,7 @@ make test                     # both
 
 `make test-sql` builds `build/libs/vgi-tika-*-all.jar`, sets
 `VGI_TIKA_WORKER="java -jar <abs jar>"`, and runs `haybarn-unittest --test-dir .
-"test/sql/*"` (install once: `uv tool install --prerelease allow 'haybarn-unittest>=2.0.0rc11,<2.1'`). **The SQL
+"test/sql/*"` (install once: `uv tool install --prerelease allow 'haybarn-unittest>=2.0.1rc3,<2.1'`). **The SQL
 suite is authoritative** — both real bugs above (empty extraction, stdio
 corruption) passed JUnit and were caught only by E2E. Fixtures are reproducible
 via `make fixtures` (Gradle `generateSqlFixtures`).
